@@ -15,19 +15,9 @@ const mockDir = "./mock"
 func TestMain(m *testing.M) {
 	// setup functions
 	setupDir(testDir)
-	//readFile = func(filename string) ([]byte, error) { return ioutil.ReadFile("./test/test.json") }
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		return ioutil.WriteFile(testFilePath, data, 0666)
 	}
-	/*
-		printf = func(format string, a ...interface{}) (n int, err error) {
-			stdout := new(bytes.Buffer)
-			fmt.Printf("%v", a)
-			fmt.Printf("\n%v", format)
-			fmt.Printf("\n%v", stdout)
-			return fmt.Fprintf(stdout, format, a)
-		}
-	*/
 	// run test
 	retCode := m.Run()
 	// teardown functions
@@ -93,6 +83,15 @@ func TestGetMeta(t *testing.T) {
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+	}
+}
+
+func TestGetMetaWithFailuer(t *testing.T) {
+	// meta.json does not exist
+	stdout := new(bytes.Buffer)
+	err := getMeta("str", "not_exist", stdout)
+	if err == nil {
+		t.Fatalf("error should be occured")
 	}
 }
 

@@ -25,16 +25,16 @@ var fprintf = fmt.Fprintf
 const metaFile = "meta.json"
 
 // Get meta from file based on key
-func getMeta(key string, metaSpace string, output io.Writer) {
+func getMeta(key string, metaSpace string, output io.Writer) error {
 	metaFilePath := metaSpace + "/" + metaFile
 	metaJson, err := readFile(metaFilePath)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	var metaInterface map[string]interface{}
 	err = json.Unmarshal(metaJson, &metaInterface)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result := metaInterface[key]
@@ -47,17 +47,22 @@ func getMeta(key string, metaSpace string, output io.Writer) {
 	default:
 		fprintf(output, "%v", result)
 	}
+
+	return nil
 }
 
 // Store meta to file with key and value
-func setMeta(key string, value string, metaSpace string) {
+func setMeta(key string, value string, metaSpace string) error {
 	metaFilePath := metaSpace + "/" + metaFile
 	var previousMeta map[string]interface{}
 
 	_, err := stat(metaFilePath)
 	// Not exist directory
 	if err != nil {
-		setupDir(metaSpace)
+		err = setupDir(metaSpace)
+		if err != nil {
+			return err
+		}
 		// Initialize interface if first setting meta
 		previousMeta = make(map[string]interface{})
 	} else {
@@ -66,7 +71,7 @@ func setMeta(key string, value string, metaSpace string) {
 		if len(metaJson) != 0 {
 			err = json.Unmarshal(metaJson, &previousMeta)
 			if err != nil {
-				panic(err)
+				return err
 			}
 		} else {
 			// Exist meta.json but it is empty
@@ -81,8 +86,9 @@ func setMeta(key string, value string, metaSpace string) {
 
 	err = writeFile(metaFilePath, resultJson, 0666)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // Parse arguments of meta-cli to JSON
@@ -127,7 +133,6 @@ func parseMetaValue(key string, value string, previousMeta interface{}) (string,
 					key, metaValue[metaIndex] = parseMetaValue(key, value, previousMetaMap[previousKey])
 					return key, metaValue
 				} else {
-					metaValue = make([]interface{}, metaIndex+1)
 					previousObject := reflect.ValueOf(previousMetaMap[previousKey])
 					if metaIndex+1 > previousObject.Len() {
 						metaValue = make([]interface{}, metaIndex+1)
@@ -136,7 +141,7 @@ func parseMetaValue(key string, value string, previousMeta interface{}) (string,
 						metaValue = make([]interface{}, previousObject.Len())
 						key, metaValue[metaIndex] = parseMetaValue(key, value, previousObject.Index(metaIndex).Interface())
 					}
-					// Insert previousValues to a[] when previousObject is Array
+					// Insert previousValues to metaVelue[] when previousObject is Array
 					if previousObject.Kind() == reflect.Slice {
 						for i := 0; i < previousObject.Len(); i++ {
 							if i != metaIndex {
@@ -178,19 +183,27 @@ func parseMetaValue(key string, value string, previousMeta interface{}) (string,
 }
 
 // setupDir makes directory and json file for meta
-func setupDir(metaSpace string) {
+func setupDir(metaSpace string) error {
 	err := mkdirAll(metaSpace, 0777)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	err = writeFile(metaSpace+"/"+metaFile, []byte(""), 0666)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
-var cleanExit = func() {
+var successExit = func() {
 	os.Exit(0)
+}
+
+var failureExit = func(err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+	}
+	os.Exit(1)
 }
 
 // finalRecover makes one last attempt to recover from a panic.
@@ -199,8 +212,9 @@ func finalRecover() {
 	if p := recover(); p != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: Something terrible has happened. Please file a ticket with this info:")
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n%v\n", p, string(debug.Stack()))
+		failureExit(nil)
 	}
-	cleanExit()
+	successExit()
 }
 
 func main() {
@@ -236,7 +250,11 @@ func main() {
 				if len(c.Args()) == 0 {
 					return cli.ShowAppHelp(c)
 				}
-				getMeta(c.Args().First(), metaSpace, os.Stdout)
+				err := getMeta(c.Args().First(), metaSpace, os.Stdout)
+				if err != nil {
+					failureExit(err)
+				}
+				successExit()
 				return nil
 			},
 			Flags: app.Flags,
@@ -248,7 +266,11 @@ func main() {
 				if len(c.Args()) <= 1 {
 					return cli.ShowAppHelp(c)
 				}
-				setMeta(c.Args().Get(0), c.Args().Get(1), metaSpace)
+				err := setMeta(c.Args().Get(0), c.Args().Get(1), metaSpace)
+				if err != nil {
+					failureExit(err)
+				}
+				successExit()
 				return nil
 			},
 			Flags: app.Flags,
