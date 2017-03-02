@@ -40,49 +40,49 @@ func TestGetMeta(t *testing.T) {
 	getMeta("str", mockDir, stdout)
 	expected := []byte("fuga")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("bool", mockDir, stdout)
 	expected = []byte("true")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("int", mockDir, stdout)
 	expected = []byte("1")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("float", mockDir, stdout)
 	expected = []byte("1.5")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("obj", mockDir, stdout)
 	expected = []byte("{\"ccc\":\"ddd\",\"momo\":{\"toke\":\"toke\"}}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("ary", mockDir, stdout)
 	expected = []byte("[\"aaa\",\"bbb\"]")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("nu", mockDir, stdout)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(stdout.Bytes()[:]))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 }
 
@@ -106,7 +106,7 @@ func TestSetMeta_bool(t *testing.T) {
 	}
 	expected := []byte("{\"bool\":true}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 func TestSetMeta_number(t *testing.T) {
@@ -121,7 +121,7 @@ func TestSetMeta_number(t *testing.T) {
 	}
 	expected := []byte("{\"float\":15.5,\"int\":10}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 
@@ -136,7 +136,7 @@ func TestSetMeta_string(t *testing.T) {
 	}
 	expected := []byte("{\"str\":\"val\"}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 
@@ -151,7 +151,7 @@ func TestSetMeta_array(t *testing.T) {
 	}
 	expected := []byte("{\"array\":[\"arg\"]}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 
@@ -166,7 +166,7 @@ func TestSetMeta_array_with_index(t *testing.T) {
 	}
 	expected := []byte("{\"array\":[null,\"arg\"]}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
 	setMeta("array[2]", "argarg", testDir)
@@ -176,7 +176,7 @@ func TestSetMeta_array_with_index(t *testing.T) {
 	}
 	expected = []byte("{\"array\":[null,\"arg\",\"argarg\"]}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 
@@ -192,7 +192,7 @@ func TestSetMeta_array_with_index_to_string(t *testing.T) {
 	}
 	expected := []byte("{\"array\":\"str\"}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 
@@ -207,7 +207,7 @@ func TestSetMeta_object(t *testing.T) {
 	}
 	expected := []byte("{\"foo\":{\"bar\":\"baz\"}}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
 	setMeta("foo.bar.baz", "piyo", testDir)
@@ -217,7 +217,7 @@ func TestSetMeta_object(t *testing.T) {
 	}
 	expected = []byte("{\"foo\":{\"bar\":{\"baz\":\"piyo\"}}}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 
@@ -233,7 +233,7 @@ func TestSetMeta_object_to_string(t *testing.T) {
 	}
 	expected := []byte("{\"foo\":\"baz\"}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
 
@@ -248,7 +248,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 	expected := []byte("{\"foo\":[null,{\"bar\":\"baz\"}]}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
 	setMeta("foo.bar[1]", "baz", testDir)
@@ -258,7 +258,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 	expected = []byte("{\"foo\":{\"bar\":[null,\"baz\"]}}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
 	setMeta("foo[1].bar[1]", "baz", testDir)
@@ -268,7 +268,132 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 	expected = []byte("{\"foo\":[null,{\"bar\":[null,\"baz\"]}]}")
 	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected[:]), string(out))
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+}
+
+func TestMetaSetValidatorWithAccept(t *testing.T) {
+	testKey := "foo"
+	r := validateMetaKey(testKey)
+	if r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
 	}
 
+	testKey = "foo[]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[0]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[1]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[10]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "a[10][20]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo.bar"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[].bar"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[1].bar"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo.bar[]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo.bar[1]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[].bar[]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[1].bar[1]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo.bar.baz"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[1].bar[2].baz[3]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "1.2.3"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+}
+
+func TestMetaSetValidatorWithReject(t *testing.T) {
+	testKey := "foo[["
+	r := validateMetaKey(testKey)
+	if r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo[]]"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo[[]]"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo[1e]"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo[01]"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo."
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo.[]"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "a-b"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
 }

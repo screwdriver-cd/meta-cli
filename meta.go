@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
+	"regexp"
 	"runtime/debug"
 	"strconv"
 
@@ -23,6 +25,7 @@ var readFile = ioutil.ReadFile
 var fprintf = fmt.Fprintf
 
 const metaFile = "meta.json"
+const metaKeyValidator = `^\w+(((\[\]|\[(0|[1-9]\d*)\]))?(\.\w+)*)*$`
 
 // Get meta from file based on key
 func getMeta(key string, metaSpace string, output io.Writer) error {
@@ -195,6 +198,11 @@ func setupDir(metaSpace string) error {
 	return nil
 }
 
+// validate key of metaSet
+func validateMetaKey(key string) bool {
+	return regexp.MustCompile(metaKeyValidator).MatchString(key)
+}
+
 var successExit = func() {
 	os.Exit(0)
 }
@@ -266,7 +274,12 @@ func main() {
 				if len(c.Args()) <= 1 {
 					return cli.ShowAppHelp(c)
 				}
-				err := setMeta(c.Args().Get(0), c.Args().Get(1), metaSpace)
+				key := c.Args().Get(0)
+				val := c.Args().Get(1)
+				if valid := validateMetaKey(key); valid == false {
+					failureExit(errors.New("Meta key validation error"))
+				}
+				err := setMeta(key, val, metaSpace)
 				if err != nil {
 					failureExit(err)
 				}
