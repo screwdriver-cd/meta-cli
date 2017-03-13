@@ -3,12 +3,41 @@
 [![Latest Release][version-image]][version-url]
 [![Go Report Card][goreport-image]][goreport-url]
 
-> CLI for reading/writing from the project metadata
+> CLI for reading/writing project metadata
 
 ## Usage
 
 ```bash
 $ go get github.com/screwdriver-cd/meta-cli
+$ cd $GOPATH/src/github.com/screwdriver-cd/meta-cli
+$ go build -a -o meta
+$ ./meta --help
+NAME:
+   meta-cli - get or set metadata for Screwdriver build
+
+USAGE:
+   meta command arguments [options]
+
+VERSION:
+   0.0.0
+
+COMMANDS:
+     get      Get a metadata with key
+     set      Set a metadata with key and value
+     help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --meta-space value  Location of meta temporarily (default: "/sd/meta")
+   --help, -h          show help
+   --version, -v       print the version
+
+COPYRIGHT:
+   (c) 2017 Yahoo Inc.
+$ ./meta set aaa bbb
+$ ./meta get aaa
+bbb
+$ ./meta set foo[2].bar[1] baz
+[null,null,{"bar":[null,"baz"]}]
 ```
 
 ## Testing
