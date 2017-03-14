@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"runtime/debug"
 	"strconv"
+	"strings"
 
 	"github.com/urfave/cli"
 )
@@ -40,7 +41,8 @@ func getMeta(key string, metaSpace string, output io.Writer) error {
 		return err
 	}
 
-	result := metaInterface[key]
+	_, result := fetchMetaValue(key, metaInterface)
+
 	switch result.(type) {
 	case map[string]interface{}, []interface{}:
 		resultJson, _ := json.Marshal(result)
@@ -52,6 +54,82 @@ func getMeta(key string, metaSpace string, output io.Writer) error {
 	}
 
 	return nil
+}
+
+func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
+	var result interface{}
+	for position, char := range key {
+		if string([]rune{char}) == "[" {
+			// Value is array with index
+			var i int
+			for i = position + 1; ; i++ {
+				_, err := strconv.Atoi(string(key[i])) // Check the next char is integer
+				if err != nil {
+					break
+				}
+			}
+			metaIndex, _ := strconv.Atoi(key[position+1 : i]) // e.g. if array[10], get "10"
+			shortenKey := key[i+1:]                           // Remove bracket[num] from key
+			metaValue := reflect.ValueOf(meta)
+			// convert type interface -> Value -> map[string]interface{}
+			metaMap := make(map[string]interface{})
+			if metaValue.Kind() == reflect.Map {
+				for _, k := range metaValue.MapKeys() {
+					pk, _ := k.Interface().(string)
+					metaMap[pk] = metaValue.MapIndex(k).Interface()
+				}
+			} else {
+				return "", nil
+			}
+			childMeta := metaMap[key[0:position]]
+			childMetaValue := reflect.ValueOf(childMeta)
+			// convert type interface{} -> Value -> []interface{}
+			childMetaSlice := make([]interface{}, childMetaValue.Len())
+			if childMetaValue.Kind() == reflect.Slice {
+				for i := 0; i < childMetaValue.Len(); i++ {
+					childMetaSlice[i] = childMetaValue.Index(i).Interface()
+				}
+			} else {
+				return "", nil
+			}
+			return fetchMetaValue(shortenKey, childMetaSlice[metaIndex])
+		} else if string([]rune{char}) == "." {
+			// Value is object
+			metaValue := reflect.ValueOf(meta)
+			metaValueMap := make(map[string]interface{})
+			childKey := strings.Split(key, ".")[0]
+			shortenKey := strings.Join(strings.Split(key, ".")[1:], ".")
+			if metaValue.Kind() == reflect.Map {
+				for _, k := range metaValue.MapKeys() {
+					pk, _ := k.Interface().(string)
+					metaValueMap[pk] = metaValue.MapIndex(k).Interface()
+				}
+				if len(childKey) != 0 {
+					return fetchMetaValue(shortenKey, metaValueMap[childKey])
+				} else {
+					return fetchMetaValue(shortenKey, metaValueMap)
+				}
+			} else {
+				return "", nil
+			}
+		}
+	}
+	if len(key) != 0 {
+		// convert type interface -> Value -> map[string]interface{}
+		metaValue := reflect.ValueOf(meta)
+		metaMap := make(map[string]interface{})
+		if metaValue.Kind() == reflect.Map {
+			for _, k := range metaValue.MapKeys() {
+				pk, _ := k.Interface().(string)
+				metaMap[pk] = metaValue.MapIndex(k).Interface()
+			}
+		}
+		result = metaMap[key]
+	} else {
+		result = meta
+	}
+
+	return key, result
 }
 
 // Store meta to file with key and value
@@ -258,7 +336,11 @@ func main() {
 				if len(c.Args()) == 0 {
 					return cli.ShowAppHelp(c)
 				}
-				err := getMeta(c.Args().First(), metaSpace, os.Stdout)
+				key := c.Args().Get(0)
+				if valid := validateMetaKey(key); valid == false {
+					failureExit(errors.New("Meta key validation error"))
+				}
+				err := getMeta(key, metaSpace, os.Stdout)
 				if err != nil {
 					failureExit(err)
 				}
