@@ -72,14 +72,87 @@ func TestGetMeta(t *testing.T) {
 	}
 
 	stdout = new(bytes.Buffer)
+	getMeta("obj.ccc", mockDir, stdout)
+	expected = []byte("ddd")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
+	getMeta("obj.momo", mockDir, stdout)
+	expected = []byte("{\"toke\":\"toke\"}")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
 	getMeta("ary", mockDir, stdout)
-	expected = []byte("[\"aaa\",\"bbb\"]")
+	expected = []byte("[\"aaa\",\"bbb\",{\"ccc\":{\"ddd\":[1,2,3]}}]")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
+	getMeta("ary[0]", mockDir, stdout)
+	expected = []byte("aaa")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
+	getMeta("ary[2]", mockDir, stdout)
+	expected = []byte("{\"ccc\":{\"ddd\":[1,2,3]}}")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
+	getMeta("ary[2].ccc", mockDir, stdout)
+	expected = []byte("{\"ddd\":[1,2,3]}")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
+	getMeta("ary[2].ccc.ddd", mockDir, stdout)
+	expected = []byte("[1,2,3]")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
+	getMeta("ary[2].ccc.ddd[1]", mockDir, stdout)
+	expected = []byte("2")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("nu", mockDir, stdout)
+	expected = []byte("null")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	// The key does not exist in meta.json
+	stdout = new(bytes.Buffer)
+	getMeta("notexist", mockDir, stdout)
+	expected = []byte("null")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	// It makes golang zero-value
+	stdout = new(bytes.Buffer)
+	getMeta("ary[]", mockDir, stdout)
+	expected = []byte("aaa")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	// The key does not exist in meta.json
+	stdout = new(bytes.Buffer)
+	getMeta("ary.aaa.bbb.ccc.ddd[10]", mockDir, stdout)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
