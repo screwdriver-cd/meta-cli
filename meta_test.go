@@ -345,7 +345,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 }
 
-func TestMetaSetValidatorWithAccept(t *testing.T) {
+func TestValidateMetaKeyWithAccept(t *testing.T) {
 	testKey := "foo"
 	r := validateMetaKey(testKey)
 	if r == false {
@@ -428,7 +428,7 @@ func TestMetaSetValidatorWithAccept(t *testing.T) {
 	}
 }
 
-func TestMetaSetValidatorWithReject(t *testing.T) {
+func TestValidateMetaKeyWithReject(t *testing.T) {
 	testKey := "foo[["
 	r := validateMetaKey(testKey)
 	if r == true {
@@ -468,5 +468,31 @@ func TestMetaSetValidatorWithReject(t *testing.T) {
 	testKey = "a-b"
 	if r = validateMetaKey(testKey); r == true {
 		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+}
+
+func TestIndexOfRightBracket(t *testing.T) {
+	key := "foo[1]"
+	i := indexOfRightBracket(key, 3)
+	expected := 5
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[10]"
+	i = indexOfRightBracket(key, 3)
+	expected = 6
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[10].bar[3]"
+	i = indexOfRightBracket(key, 11) // Get second right bracket
+	expected = 13
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
 	}
 }

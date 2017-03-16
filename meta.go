@@ -28,7 +28,7 @@ var fprintf = fmt.Fprintf
 const metaFile = "meta.json"
 const metaKeyValidator = `^\w+(((\[\]|\[(0|[1-9]\d*)\]))?(\.\w+)*)*$`
 
-// Get meta from file based on key
+// getMeta prints meta value from file based on key
 func getMeta(key string, metaSpace string, output io.Writer) error {
 	metaFilePath := metaSpace + "/" + metaFile
 	metaJson, err := readFile(metaFilePath)
@@ -56,74 +56,86 @@ func getMeta(key string, metaSpace string, output io.Writer) error {
 	return nil
 }
 
+// indexOfRightBracket gets index of right bracket("]"). e.g. the key is foo[10], return 6
+func indexOfRightBracket(key string, current int) int {
+	var i int
+	for i = current + 1; ; i++ {
+		_, err := strconv.Atoi(string(key[i])) // Check the next char is integer
+		if err != nil {
+			break
+		}
+	}
+	return i
+}
+
+// convertInterfaceToMap converts interface{} to map[string]interface{} via Value
+func convertInterfaceToMap(metaInterface interface{}) map[string]interface{} {
+	metaValue := reflect.ValueOf(metaInterface)
+	metaMap := make(map[string]interface{})
+	if metaValue.Kind() == reflect.Map {
+		for _, keyValue := range metaValue.MapKeys() {
+			keyString, _ := keyValue.Interface().(string)
+			metaMap[keyString] = metaValue.MapIndex(keyValue).Interface()
+		}
+	} else {
+		return nil
+	}
+	return metaMap
+}
+
+// convertInterfaceToSlice converts interface{} to []interface{} via Value
+func convertInterfaceToSlice(metaInterface interface{}) []interface{} {
+	metaValue := reflect.ValueOf(metaInterface)
+	metaSlice := make([]interface{}, metaValue.Len())
+	if metaValue.Kind() == reflect.Slice {
+		for i := 0; i < metaValue.Len(); i++ {
+			metaSlice[i] = metaValue.Index(i).Interface()
+		}
+	} else {
+		return nil
+	}
+	return metaSlice
+}
+
+// fetchMetaValue fetches value from meta by using key
 func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	var result interface{}
 	for current, char := range key {
 		if string([]rune{char}) == "[" {
 			// Value is array with index
-			var i int
-			for i = current + 1; ; i++ {
-				_, err := strconv.Atoi(string(key[i])) // Check the next char is integer
-				if err != nil {
-					break
-				}
-			}
-			metaIndex, _ := strconv.Atoi(key[current+1 : i]) // e.g. if array[10], get "10"
-			shortenKey := key[i+1:]                          // Remove bracket[num] from key
-			metaValue := reflect.ValueOf(meta)
-			// convert type interface -> Value -> map[string]interface{}
-			metaMap := make(map[string]interface{})
-			if metaValue.Kind() == reflect.Map {
-				for _, keyValue := range metaValue.MapKeys() {
-					keyString, _ := keyValue.Interface().(string)
-					metaMap[keyString] = metaValue.MapIndex(keyValue).Interface()
-				}
-			} else {
+			rightBracket := indexOfRightBracket(key, current)
+			metaIndex, _ := strconv.Atoi(key[current+1 : rightBracket]) // e.g. if key is foo[10], get "10"
+			shortenKey := key[rightBracket+1:]                          // e.g. foo[10].bar -> .bar
+			metaMap := convertInterfaceToMap(meta)
+			if metaMap == nil {
 				return "", nil
 			}
+
 			childMeta := metaMap[key[0:current]]
-			childMetaValue := reflect.ValueOf(childMeta)
-			// convert type interface{} -> Value -> []interface{}
-			childMetaSlice := make([]interface{}, childMetaValue.Len())
-			if childMetaValue.Kind() == reflect.Slice {
-				for i := 0; i < childMetaValue.Len(); i++ {
-					childMetaSlice[i] = childMetaValue.Index(i).Interface()
-				}
-			} else {
+			childMetaSlice := convertInterfaceToSlice(childMeta)
+			if childMetaSlice == nil {
 				return "", nil
 			}
 			return fetchMetaValue(shortenKey, childMetaSlice[metaIndex])
 		} else if string([]rune{char}) == "." {
 			// Value is object
-			metaValue := reflect.ValueOf(meta)
-			metaValueMap := make(map[string]interface{})
-			childKey := strings.Split(key, ".")[0]
-			shortenKey := strings.Join(strings.Split(key, ".")[1:], ".")
-			if metaValue.Kind() == reflect.Map {
-				for _, keyValue := range metaValue.MapKeys() {
-					keyString, _ := keyValue.Interface().(string)
-					metaValueMap[keyString] = metaValue.MapIndex(keyValue).Interface()
-				}
-				if len(childKey) != 0 {
-					return fetchMetaValue(shortenKey, metaValueMap[childKey])
-				} else {
-					return fetchMetaValue(shortenKey, metaValueMap)
-				}
+			childKey := strings.Split(key, ".")[0]                       // e.g. foo.bar.baz -> foo
+			shortenKey := strings.Join(strings.Split(key, ".")[1:], ".") // e.g. foo.bar.baz -> bar.baz
+			metaMap := convertInterfaceToMap(meta)
+			if len(childKey) != 0 {
+				return fetchMetaValue(shortenKey, metaMap[childKey])
 			} else {
+				return fetchMetaValue(shortenKey, metaMap)
+			}
+			if metaMap == nil {
 				return "", nil
 			}
 		}
 	}
 	if len(key) != 0 {
 		// convert type interface -> Value -> map[string]interface{}
-		metaValue := reflect.ValueOf(meta)
-		metaMap := make(map[string]interface{})
-		if metaValue.Kind() == reflect.Map {
-			for _, k := range metaValue.MapKeys() {
-				pk, _ := k.Interface().(string)
-				metaMap[pk] = metaValue.MapIndex(k).Interface()
-			}
-		}
+		var metaMap map[string]interface{}
+		metaMap = convertInterfaceToMap(meta)
 		result = metaMap[key]
 	} else {
 		result = meta
@@ -132,7 +144,7 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	return key, result
 }
 
-// Store meta to file with key and value
+// setMeta stores meta to file with key and value
 func setMeta(key string, value string, metaSpace string) error {
 	metaFilePath := metaSpace + "/" + metaFile
 	var previousMeta map[string]interface{}
@@ -160,7 +172,7 @@ func setMeta(key string, value string, metaSpace string) error {
 		}
 	}
 
-	key, parsedValue := parseMetaValue(key, value, previousMeta)
+	key, parsedValue := setMetaValue(key, value, previousMeta)
 	previousMeta[key] = parsedValue
 
 	resultJson, err := json.Marshal(previousMeta)
@@ -172,61 +184,46 @@ func setMeta(key string, value string, metaSpace string) error {
 	return nil
 }
 
-// Parse arguments of meta-cli to JSON
-func parseMetaValue(key string, value string, previousMeta interface{}) (string, interface{}) {
-	for position, char := range key {
+// setMetaValue updates meta
+func setMetaValue(key string, value string, previousMeta interface{}) (string, interface{}) {
+	for current, char := range key {
 		if string([]rune{char}) == "[" {
-			nextChar := key[position+1]
+			nextChar := key[current+1]
 			if nextChar == []byte("]")[0] {
 				// Value is array
 				var metaValue [1]interface{}
-				key = key[0:position] + key[position+2:] // Remove bracket[] from key
-				key, metaValue[0] = parseMetaValue(key, value, previousMeta)
+				key = key[0:current] + key[current+2:] // Remove bracket[] from key
+				key, metaValue[0] = setMetaValue(key, value, previousMeta)
 				return key, metaValue
 			} else {
 				// Value is array with index
-				var i int
-				for i = position + 1; ; i++ {
-					_, err := strconv.Atoi(string(key[i])) // Check the next char is integer
-					if err != nil {
-						break
-					}
-				}
-				metaIndex, _ := strconv.Atoi(key[position+1 : i]) // e.g. if array[10], get "10"
-				key = key[0:position] + key[i+1:]                 // Remove bracket[num] from key
+				rightBracket := indexOfRightBracket(key, current)
+				metaIndex, _ := strconv.Atoi(key[current+1 : rightBracket]) // e.g. if key is foo[10], get "10"
+				keyHead := key[0:current]                                   // e.g. foo[10].bar -> foo
+				key = key[0:current] + key[rightBracket+1:]                 // Remove bracket and number from key. e.g. foo[10].bar -> foo.bar
 
-				// Convert previousMeta Interface to Map
-				previousMetaValue := reflect.ValueOf(previousMeta)
-				var previousMetaMap map[string]interface{}
-				previousMetaMap = make(map[string]interface{})
-				var previousKey string
-				if previousMetaValue.Kind() == reflect.Map {
-					for _, k := range previousMetaValue.MapKeys() {
-						previousKey, _ = k.Interface().(string)
-						previousMetaMap[previousKey] = previousMetaValue.MapIndex(k).Interface()
-					}
-				}
+				previousMetaMap := convertInterfaceToMap(previousMeta)
 
 				var metaValue []interface{}
-				// previousMetaMap[previousKey] is empty or string, create array with null except "value"
-				if previousMetaMap[previousKey] == nil || reflect.ValueOf(previousMetaMap[previousKey]).Kind() == reflect.String {
+				// previousMetaMap[keyHead] is empty or string, create array with null except value of argument
+				if previousMetaMap[keyHead] == nil || reflect.ValueOf(previousMetaMap[keyHead]).Kind() == reflect.String {
 					metaValue = make([]interface{}, metaIndex+1)
-					key, metaValue[metaIndex] = parseMetaValue(key, value, previousMetaMap[previousKey])
+					key, metaValue[metaIndex] = setMetaValue(key, value, previousMetaMap[keyHead])
 					return key, metaValue
 				} else {
-					previousObject := reflect.ValueOf(previousMetaMap[previousKey])
-					if metaIndex+1 > previousObject.Len() {
+					previousMetaValue := reflect.ValueOf(previousMetaMap[keyHead])
+					if metaIndex+1 > previousMetaValue.Len() {
 						metaValue = make([]interface{}, metaIndex+1)
-						key, metaValue[metaIndex] = parseMetaValue(key, value, nil)
+						key, metaValue[metaIndex] = setMetaValue(key, value, nil)
 					} else {
-						metaValue = make([]interface{}, previousObject.Len())
-						key, metaValue[metaIndex] = parseMetaValue(key, value, previousObject.Index(metaIndex).Interface())
+						metaValue = make([]interface{}, previousMetaValue.Len())
+						key, metaValue[metaIndex] = setMetaValue(key, value, previousMetaValue.Index(metaIndex).Interface())
 					}
-					// Insert previousValues to metaVelue[] when previousObject is Array
-					if previousObject.Kind() == reflect.Slice {
-						for i := 0; i < previousObject.Len(); i++ {
+					// Insert previous values to metaVelue[] when previousMetaValue type is slice except new value
+					if previousMetaValue.Kind() == reflect.Slice {
+						for i := 0; i < previousMetaValue.Len(); i++ {
 							if i != metaIndex {
-								metaValue[i] = previousObject.Index(i).Interface()
+								metaValue[i] = previousMetaValue.Index(i).Interface()
 							}
 						}
 					}
@@ -235,11 +232,10 @@ func parseMetaValue(key string, value string, previousMeta interface{}) (string,
 			}
 		} else if string([]rune{char}) == "." {
 			// Value is object
-			childKey := key[position+1:]
-			key = key[0:position]
-			var obj map[string]interface{}
-			obj = make(map[string]interface{})
-			childKey, tmpValue := parseMetaValue(childKey, value, previousMeta)
+			childKey := key[current+1:]
+			key = key[0:current]
+			obj := make(map[string]interface{})
+			childKey, tmpValue := setMetaValue(childKey, value, previousMeta)
 			obj[childKey] = tmpValue
 			return key, obj
 		}
@@ -276,16 +272,18 @@ func setupDir(metaSpace string) error {
 	return nil
 }
 
-// validate key of metaSet
+// validateMetaKey validates the key of argument
 func validateMetaKey(key string) bool {
 	return regexp.MustCompile(metaKeyValidator).MatchString(key)
 }
 
-var successExit = func() {
+// successExit exits process with 0
+func successExit() {
 	os.Exit(0)
 }
 
-var failureExit = func(err error) {
+// failureExit exits process with 1
+func failureExit(err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 	}
