@@ -122,13 +122,13 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 			childKey := strings.Split(key, ".")[0]                       // e.g. foo.bar.baz -> foo
 			shortenKey := strings.Join(strings.Split(key, ".")[1:], ".") // e.g. foo.bar.baz -> bar.baz
 			metaMap := convertInterfaceToMap(meta)
+			if metaMap == nil {
+				return "", nil
+			}
 			if len(childKey) != 0 {
 				return fetchMetaValue(shortenKey, metaMap[childKey])
 			} else {
 				return fetchMetaValue(shortenKey, metaMap)
-			}
-			if metaMap == nil {
-				return "", nil
 			}
 		}
 	}
@@ -172,7 +172,7 @@ func setMeta(key string, value string, metaSpace string) error {
 		}
 	}
 
-	key, parsedValue := setMetaValue(key, value, previousMeta)
+	key, parsedValue := setMetaValueRecursive(key, value, previousMeta)
 	previousMeta[key] = parsedValue
 
 	resultJson, err := json.Marshal(previousMeta)
@@ -184,8 +184,8 @@ func setMeta(key string, value string, metaSpace string) error {
 	return nil
 }
 
-// setMetaValue updates meta
-func setMetaValue(key string, value string, previousMeta interface{}) (string, interface{}) {
+// setMetaValueRecursive updates meta
+func setMetaValueRecursive(key string, value string, previousMeta interface{}) (string, interface{}) {
 	for current, char := range key {
 		if string([]rune{char}) == "[" {
 			nextChar := key[current+1]
@@ -193,49 +193,49 @@ func setMetaValue(key string, value string, previousMeta interface{}) (string, i
 				// Value is array
 				var metaValue [1]interface{}
 				key = key[0:current] + key[current+2:] // Remove bracket[] from key
-				key, metaValue[0] = setMetaValue(key, value, previousMeta)
+				key, metaValue[0] = setMetaValueRecursive(key, value, previousMeta)
 				return key, metaValue
 			} else {
 				// Value is array with index
 				rightBracket := indexOfRightBracket(key, current)
 				metaIndex, _ := strconv.Atoi(key[current+1 : rightBracket]) // e.g. if key is foo[10], get "10"
 				keyHead := key[0:current]                                   // e.g. foo[10].bar -> foo
-				key = key[0:current] + key[rightBracket+1:]                 // Remove bracket and number from key. e.g. foo[10].bar -> foo.bar
+				key = keyHead + key[rightBracket+1:]                        // Remove bracket and number from key. e.g. foo[10].bar -> foo.bar
 
 				previousMetaMap := convertInterfaceToMap(previousMeta)
-
+				previousMetaValue := reflect.ValueOf(previousMetaMap[keyHead])
 				var metaValue []interface{}
+
 				// previousMetaMap[keyHead] is empty or string, create array with null except value of argument
 				if previousMetaMap[keyHead] == nil || reflect.ValueOf(previousMetaMap[keyHead]).Kind() == reflect.String {
 					metaValue = make([]interface{}, metaIndex+1)
-					key, metaValue[metaIndex] = setMetaValue(key, value, previousMetaMap[keyHead])
-					return key, metaValue
+					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaMap[keyHead])
 				} else {
-					previousMetaValue := reflect.ValueOf(previousMetaMap[keyHead])
 					if metaIndex+1 > previousMetaValue.Len() {
 						metaValue = make([]interface{}, metaIndex+1)
-						key, metaValue[metaIndex] = setMetaValue(key, value, nil)
+						key, metaValue[metaIndex] = setMetaValueRecursive(key, value, nil)
 					} else {
 						metaValue = make([]interface{}, previousMetaValue.Len())
-						key, metaValue[metaIndex] = setMetaValue(key, value, previousMetaValue.Index(metaIndex).Interface())
+						key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaValue.Index(metaIndex).Interface())
 					}
-					// Insert previous values to metaVelue[] when previousMetaValue type is slice except new value
-					if previousMetaValue.Kind() == reflect.Slice {
-						for i := 0; i < previousMetaValue.Len(); i++ {
-							if i != metaIndex {
-								metaValue[i] = previousMetaValue.Index(i).Interface()
-							}
+				}
+				// Insert previous values to metaVelue[] when previousMetaValue type is slice except new value
+				if previousMetaValue.Kind() == reflect.Slice {
+					for i := 0; i < previousMetaValue.Len(); i++ {
+						if i != metaIndex {
+							metaValue[i] = previousMetaValue.Index(i).Interface()
 						}
 					}
-					return key, metaValue
 				}
+				return key, metaValue
 			}
 		} else if string([]rune{char}) == "." {
 			// Value is object
-			childKey := key[current+1:]
-			key = key[0:current]
+			childKey := key[current+1:] // e.g. aaa.bbb -> bbb
+			key = key[0:current]        // e.g. aaa.bbb -> aaa
 			obj := make(map[string]interface{})
-			childKey, tmpValue := setMetaValue(childKey, value, previousMeta)
+			previousMetaMap := convertInterfaceToMap(previousMeta)
+			childKey, tmpValue := setMetaValueRecursive(childKey, value, previousMetaMap[key])
 			obj[childKey] = tmpValue
 			return key, obj
 		}
