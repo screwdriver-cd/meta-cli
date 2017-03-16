@@ -58,30 +58,30 @@ func getMeta(key string, metaSpace string, output io.Writer) error {
 
 func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	var result interface{}
-	for position, char := range key {
+	for current, char := range key {
 		if string([]rune{char}) == "[" {
 			// Value is array with index
 			var i int
-			for i = position + 1; ; i++ {
+			for i = current + 1; ; i++ {
 				_, err := strconv.Atoi(string(key[i])) // Check the next char is integer
 				if err != nil {
 					break
 				}
 			}
-			metaIndex, _ := strconv.Atoi(key[position+1 : i]) // e.g. if array[10], get "10"
-			shortenKey := key[i+1:]                           // Remove bracket[num] from key
+			metaIndex, _ := strconv.Atoi(key[current+1 : i]) // e.g. if array[10], get "10"
+			shortenKey := key[i+1:]                          // Remove bracket[num] from key
 			metaValue := reflect.ValueOf(meta)
 			// convert type interface -> Value -> map[string]interface{}
 			metaMap := make(map[string]interface{})
 			if metaValue.Kind() == reflect.Map {
-				for _, k := range metaValue.MapKeys() {
-					pk, _ := k.Interface().(string)
-					metaMap[pk] = metaValue.MapIndex(k).Interface()
+				for _, keyValue := range metaValue.MapKeys() {
+					keyString, _ := keyValue.Interface().(string)
+					metaMap[keyString] = metaValue.MapIndex(keyValue).Interface()
 				}
 			} else {
 				return "", nil
 			}
-			childMeta := metaMap[key[0:position]]
+			childMeta := metaMap[key[0:current]]
 			childMetaValue := reflect.ValueOf(childMeta)
 			// convert type interface{} -> Value -> []interface{}
 			childMetaSlice := make([]interface{}, childMetaValue.Len())
@@ -100,9 +100,9 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 			childKey := strings.Split(key, ".")[0]
 			shortenKey := strings.Join(strings.Split(key, ".")[1:], ".")
 			if metaValue.Kind() == reflect.Map {
-				for _, k := range metaValue.MapKeys() {
-					pk, _ := k.Interface().(string)
-					metaValueMap[pk] = metaValue.MapIndex(k).Interface()
+				for _, keyValue := range metaValue.MapKeys() {
+					keyString, _ := keyValue.Interface().(string)
+					metaValueMap[keyString] = metaValue.MapIndex(keyValue).Interface()
 				}
 				if len(childKey) != 0 {
 					return fetchMetaValue(shortenKey, metaValueMap[childKey])
