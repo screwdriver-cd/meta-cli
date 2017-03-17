@@ -25,8 +25,10 @@ var writeFile = ioutil.WriteFile
 var readFile = ioutil.ReadFile
 var fprintf = fmt.Fprintf
 
+var metaKeyValidator = regexp.MustCompile(`^\w+(((\[\]|\[(0|[1-9]\d*)\]))?(\.\w+)*)*$`)
+var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
+
 const metaFile = "meta.json"
-const metaKeyValidator = `^\w+(((\[\]|\[(0|[1-9]\d*)\]))?(\.\w+)*)*$`
 
 // getMeta prints meta value from file based on key
 func getMeta(key string, metaSpace string, output io.Writer) error {
@@ -56,16 +58,19 @@ func getMeta(key string, metaSpace string, output io.Writer) error {
 	return nil
 }
 
-// indexOfRightBracket gets index of right bracket("]"). e.g. the key is foo[10], return 6
-func indexOfRightBracket(key string, current int) int {
-	var i int
-	for i = current + 1; ; i++ {
-		_, err := strconv.Atoi(string(key[i])) // Check the next char is integer
-		if err != nil {
-			break
-		}
+// indexOfFirstRightBracket gets index of right bracket("]"). e.g. the key is foo[10].bar[4], return 6
+func indexOfFirstRightBracket(key string) int {
+	return (rightBracketRegExp.FindStringIndex(key)[1] - 1)
+}
+
+// metaIndexFromKey gets number in brackets. e.g. the key is foo[10].bar[4], return 10
+func metaIndexFromKey(key string) int {
+	indexString := rightBracketRegExp.FindStringSubmatch(key)[1]
+	index, err := strconv.Atoi(indexString)
+	if err != nil {
+		return 0
 	}
-	return i
+	return index
 }
 
 // convertInterfaceToMap converts interface{} to map[string]interface{} via Value
@@ -103,9 +108,9 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	for current, char := range key {
 		if string([]rune{char}) == "[" {
 			// Value is array with index
-			rightBracket := indexOfRightBracket(key, current)
-			metaIndex, _ := strconv.Atoi(key[current+1 : rightBracket]) // e.g. if key is foo[10], get "10"
-			shortenKey := key[rightBracket+1:]                          // e.g. foo[10].bar -> .bar
+			rightBracket := indexOfFirstRightBracket(key)
+			metaIndex := metaIndexFromKey(key) // e.g. if key is foo[10], get "10"
+			shortenKey := key[rightBracket+1:] // e.g. foo[10].bar -> .bar
 			metaMap := convertInterfaceToMap(meta)
 			if metaMap == nil {
 				return "", nil
@@ -197,10 +202,10 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 				return key, metaValue
 			} else {
 				// Value is array with index
-				rightBracket := indexOfRightBracket(key, current)
-				metaIndex, _ := strconv.Atoi(key[current+1 : rightBracket]) // e.g. if key is foo[10], get "10"
-				keyHead := key[0:current]                                   // e.g. foo[10].bar -> foo
-				key = keyHead + key[rightBracket+1:]                        // Remove bracket and number from key. e.g. foo[10].bar -> foo.bar
+				rightBracket := indexOfFirstRightBracket(key)
+				metaIndex := metaIndexFromKey(key)   // e.g. if key is foo[10], get "10"
+				keyHead := key[0:current]            // e.g. foo[10].bar -> foo
+				key = keyHead + key[rightBracket+1:] // Remove bracket and number from key. e.g. foo[10].bar -> foo.bar
 
 				previousMetaMap := convertInterfaceToMap(previousMeta)
 				previousMetaValue := reflect.ValueOf(previousMetaMap[keyHead])
@@ -274,7 +279,7 @@ func setupDir(metaSpace string) error {
 
 // validateMetaKey validates the key of argument
 func validateMetaKey(key string) bool {
-	return regexp.MustCompile(metaKeyValidator).MatchString(key)
+	return metaKeyValidator.MatchString(key)
 }
 
 // successExit exits process with 0

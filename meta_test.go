@@ -471,9 +471,9 @@ func TestValidateMetaKeyWithReject(t *testing.T) {
 	}
 }
 
-func TestIndexOfRightBracket(t *testing.T) {
+func TestIndexOfFirstRightBracket(t *testing.T) {
 	key := "foo[1]"
-	i := indexOfRightBracket(key, 3)
+	i := indexOfFirstRightBracket(key)
 	expected := 5
 
 	if i != expected {
@@ -481,16 +481,42 @@ func TestIndexOfRightBracket(t *testing.T) {
 	}
 
 	key = "foo[10]"
-	i = indexOfRightBracket(key, 3)
+	i = indexOfFirstRightBracket(key)
 	expected = 6
 
 	if i != expected {
 		t.Fatalf("Expected '%d' but '%d'", expected, i)
 	}
+}
 
-	key = "foo[10].bar[3]"
-	i = indexOfRightBracket(key, 11) // Get second right bracket
-	expected = 13
+func TestMetaIndexFromKey(t *testing.T) {
+	key := "foo[1]"
+	i := metaIndexFromKey(key)
+	expected := 1
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[10]"
+	i = metaIndexFromKey(key)
+	expected = 10
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[10].bar[4].baz"
+	i = metaIndexFromKey(key)
+	expected = 10
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[]"
+	i = metaIndexFromKey(key)
+	expected = 0
 
 	if i != expected {
 		t.Fatalf("Expected '%d' but '%d'", expected, i)
