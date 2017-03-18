@@ -487,6 +487,14 @@ func TestIndexOfFirstRightBracket(t *testing.T) {
 	if i != expected {
 		t.Fatalf("Expected '%d' but '%d'", expected, i)
 	}
+
+	key = "foo[123].bar[10].baz"
+	i = indexOfFirstRightBracket(key)
+	expected = 7
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
 }
 
 func TestMetaIndexFromKey(t *testing.T) {
