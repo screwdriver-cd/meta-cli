@@ -345,7 +345,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 }
 
-func TestMetaSetValidatorWithAccept(t *testing.T) {
+func TestValidateMetaKeyWithAccept(t *testing.T) {
 	testKey := "foo"
 	r := validateMetaKey(testKey)
 	if r == false {
@@ -428,7 +428,7 @@ func TestMetaSetValidatorWithAccept(t *testing.T) {
 	}
 }
 
-func TestMetaSetValidatorWithReject(t *testing.T) {
+func TestValidateMetaKeyWithReject(t *testing.T) {
 	testKey := "foo[["
 	r := validateMetaKey(testKey)
 	if r == true {
@@ -468,5 +468,65 @@ func TestMetaSetValidatorWithReject(t *testing.T) {
 	testKey = "a-b"
 	if r = validateMetaKey(testKey); r == true {
 		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+}
+
+func TestIndexOfFirstRightBracket(t *testing.T) {
+	key := "foo[1]"
+	i := indexOfFirstRightBracket(key)
+	expected := 5
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[10]"
+	i = indexOfFirstRightBracket(key)
+	expected = 6
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[123].bar[10].baz"
+	i = indexOfFirstRightBracket(key)
+	expected = 7
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+}
+
+func TestMetaIndexFromKey(t *testing.T) {
+	key := "foo[1]"
+	i := metaIndexFromKey(key)
+	expected := 1
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[10]"
+	i = metaIndexFromKey(key)
+	expected = 10
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[10].bar[4].baz"
+	i = metaIndexFromKey(key)
+	expected = 10
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+
+	key = "foo[]"
+	i = metaIndexFromKey(key)
+	expected = 0
+
+	if i != expected {
+		t.Fatalf("Expected '%d' but '%d'", expected, i)
 	}
 }
