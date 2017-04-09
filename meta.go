@@ -236,13 +236,18 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 			}
 		} else if string([]rune{char}) == "." {
 			// Value is object
+			keyHead := key[0:current]   // e.g. aaa.bbb -> aaa
 			childKey := key[current+1:] // e.g. aaa.bbb -> bbb
-			key = key[0:current]        // e.g. aaa.bbb -> aaa
 			obj := make(map[string]interface{})
+			var tmpValue interface{}
 			previousMetaMap := convertInterfaceToMap(previousMeta)
-			childKey, tmpValue := setMetaValueRecursive(childKey, value, previousMetaMap[key])
+			if previousMetaMap[keyHead] == nil {
+				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap)
+			} else {
+				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap[keyHead])
+			}
 			obj[childKey] = tmpValue
-			return key, obj
+			return keyHead, obj
 		}
 	}
 	// Value is int
