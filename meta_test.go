@@ -283,12 +283,22 @@ func TestSetMeta_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
+	setMeta("foo.barbar", "bazbaz", testDir)
+	out, err = exec.Command("cat", testFilePath).Output()
+	if err != nil {
+		t.Fatal("Meta file did not create.")
+	}
+	expected = []byte("{\"foo\":{\"bar\":\"baz\",\"barbar\":\"bazbaz\"}}")
+	if bytes.Compare(expected, out) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+
 	setMeta("foo.bar.baz", "piyo", testDir)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
 	}
-	expected = []byte("{\"foo\":{\"bar\":{\"baz\":\"piyo\"}}}")
+	expected = []byte("{\"foo\":{\"bar\":{\"baz\":\"piyo\"},\"barbar\":\"bazbaz\"}}")
 	if bytes.Compare(expected, out) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
@@ -400,6 +410,41 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatal("Meta file did not create.")
 	}
 	expected = []byte("{\"foo\":[{\"bar\":[null,\"baz\",null,{\"baz\":[null,\"qux\"]}]},{\"bar\":[\"ba\",\"baz\",\"bazbaz\",{\"baz\":[\"quxqux\",\"qux\"]}]}]}")
+	if bytes.Compare(expected, out) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+}
+
+func TestSetMeta_object_with_array(t *testing.T) {
+	setupDir(testDir)
+	os.Remove(testFilePath)
+
+	setMeta("foo.bar[1]", "baz", testDir)
+	out, err := exec.Command("cat", testFilePath).Output()
+	if err != nil {
+		t.Fatal("Meta file did not create.")
+	}
+	expected := []byte("{\"foo\":{\"bar\":[null,\"baz\"]}}")
+	if bytes.Compare(expected, out) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+
+	setMeta("foo.bar[0]", "baz0", testDir)
+	out, err = exec.Command("cat", testFilePath).Output()
+	if err != nil {
+		t.Fatal("Meta file did not create.")
+	}
+	expected = []byte("{\"foo\":{\"bar\":[\"baz0\",\"baz\"]}}")
+	if bytes.Compare(expected, out) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+
+	setMeta("foo.barbar[2]", "bazbaz", testDir)
+	out, err = exec.Command("cat", testFilePath).Output()
+	if err != nil {
+		t.Fatal("Meta file did not create.")
+	}
+	expected = []byte("{\"foo\":{\"bar\":[\"baz0\",\"baz\"],\"barbar\":[null,null,\"bazbaz\"]}}")
 	if bytes.Compare(expected, out) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}

@@ -244,6 +244,11 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 			if previousMetaMap[keyHead] == nil {
 				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap)
 			} else {
+				// copy previous object only if it is map
+				previousObj := convertInterfaceToMap(previousMetaMap[keyHead])
+				if len(previousObj) != 0 {
+					obj = previousObj
+				}
 				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap[keyHead])
 			}
 			obj[childKey] = tmpValue
