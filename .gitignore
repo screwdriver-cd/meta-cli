@@ -3,6 +3,7 @@
 *.a
 *.so
 meta-cli
+meta
 
 # Folders
 _obj
