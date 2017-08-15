@@ -24,3 +24,12 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Generated while deploying
+
+/ci/
+/VERSION
+
+# goreleaser
+
+/dist/
