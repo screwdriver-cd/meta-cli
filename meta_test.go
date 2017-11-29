@@ -11,14 +11,12 @@ const testFile = "meta.json"
 const testDir = "./_test"
 const testFilePath = testDir + "/" + testFile
 const mockDir = "./mock"
-
 const externalFile = "sd@123:component.json"
 const externalFilePath = testDir + "/" + externalFile
 
 func TestMain(m *testing.M) {
 	// setup functions
 	setupDir(testDir, testFile)
-
 	// run test
 	retCode := m.Run()
 	// teardown functions
@@ -32,7 +30,7 @@ func TestSetupDir(t *testing.T) {
 	setupDir(testDir, testFile)
 	_, err := os.Stat(testFilePath)
 	if err != nil {
-		t.Errorf("could not create %s in %s", metaFile, testDir)
+		t.Errorf("could not create %s in %s", testFile, testDir)
 	}
 }
 
