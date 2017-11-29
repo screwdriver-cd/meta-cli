@@ -2,22 +2,23 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
 )
 
+const testFile = "meta.json"
 const testDir = "./_test"
-const testFilePath = testDir + "/" + metaFile
+const testFilePath = testDir + "/" + testFile
 const mockDir = "./mock"
+
+const externalFile = "sd@123:component.json"
+const externalFilePath = testDir + "/" + externalFile
 
 func TestMain(m *testing.M) {
 	// setup functions
-	setupDir(testDir)
-	writeFile = func(filename string, data []byte, perm os.FileMode) error {
-		return ioutil.WriteFile(testFilePath, data, 0666)
-	}
+	setupDir(testDir, testFile)
+
 	// run test
 	retCode := m.Run()
 	// teardown functions
@@ -28,107 +29,131 @@ func TestMain(m *testing.M) {
 func TestSetupDir(t *testing.T) {
 	os.RemoveAll(testDir)
 
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	_, err := os.Stat(testFilePath)
 	if err != nil {
 		t.Errorf("could not create %s in %s", metaFile, testDir)
 	}
 }
 
+func TestExternalMetaFile(t *testing.T) {
+	setupDir(testDir, externalFile)
+	os.Remove(externalFilePath)
+
+	// Test set
+	setMeta("str", "val", testDir, externalFile)
+	out, err := exec.Command("cat", externalFilePath).Output()
+	if err != nil {
+		t.Fatal("Meta file did not create.")
+	}
+	expected := []byte("{\"str\":\"val\"}")
+	if bytes.Compare(expected, out) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+
+	// Test get
+	stdout := new(bytes.Buffer)
+	getMeta("str", mockDir, externalFile, stdout)
+	expected = []byte("meow")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+}
+
 func TestGetMeta(t *testing.T) {
 	stdout := new(bytes.Buffer)
-	getMeta("str", mockDir, stdout)
+	getMeta("str", mockDir, testFile, stdout)
 	expected := []byte("fuga")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("bool", mockDir, stdout)
+	getMeta("bool", mockDir, testFile, stdout)
 	expected = []byte("true")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("int", mockDir, stdout)
+	getMeta("int", mockDir, testFile, stdout)
 	expected = []byte("1")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("float", mockDir, stdout)
+	getMeta("float", mockDir, testFile, stdout)
 	expected = []byte("1.5")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("obj", mockDir, stdout)
+	getMeta("obj", mockDir, testFile, stdout)
 	expected = []byte("{\"ccc\":\"ddd\",\"momo\":{\"toke\":\"toke\"}}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("obj.ccc", mockDir, stdout)
+	getMeta("obj.ccc", mockDir, testFile, stdout)
 	expected = []byte("ddd")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("obj.momo", mockDir, stdout)
+	getMeta("obj.momo", mockDir, testFile, stdout)
 	expected = []byte("{\"toke\":\"toke\"}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary", mockDir, stdout)
+	getMeta("ary", mockDir, testFile, stdout)
 	expected = []byte("[\"aaa\",\"bbb\",{\"ccc\":{\"ddd\":[1,2,3]}}]")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[0]", mockDir, stdout)
+	getMeta("ary[0]", mockDir, testFile, stdout)
 	expected = []byte("aaa")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2]", mockDir, stdout)
+	getMeta("ary[2]", mockDir, testFile, stdout)
 	expected = []byte("{\"ccc\":{\"ddd\":[1,2,3]}}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc", mockDir, stdout)
+	getMeta("ary[2].ccc", mockDir, testFile, stdout)
 	expected = []byte("{\"ddd\":[1,2,3]}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc.ddd", mockDir, stdout)
+	getMeta("ary[2].ccc.ddd", mockDir, testFile, stdout)
 	expected = []byte("[1,2,3]")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc.ddd[1]", mockDir, stdout)
+	getMeta("ary[2].ccc.ddd[1]", mockDir, testFile, stdout)
 	expected = []byte("2")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("nu", mockDir, stdout)
+	getMeta("nu", mockDir, testFile, stdout)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -136,7 +161,7 @@ func TestGetMeta(t *testing.T) {
 
 	// The key does not exist in meta.json
 	stdout = new(bytes.Buffer)
-	getMeta("notexist", mockDir, stdout)
+	getMeta("notexist", mockDir, testFile, stdout)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -144,7 +169,7 @@ func TestGetMeta(t *testing.T) {
 
 	// It makes golang zero-value
 	stdout = new(bytes.Buffer)
-	getMeta("ary[]", mockDir, stdout)
+	getMeta("ary[]", mockDir, testFile, stdout)
 	expected = []byte("aaa")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -152,27 +177,27 @@ func TestGetMeta(t *testing.T) {
 
 	// The key does not exist in meta.json
 	stdout = new(bytes.Buffer)
-	getMeta("ary.aaa.bbb.ccc.ddd[10]", mockDir, stdout)
+	getMeta("ary.aaa.bbb.ccc.ddd[10]", mockDir, testFile, stdout)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 }
 
-func TestGetMetaWithFailuer(t *testing.T) {
+func TestGetMetaWithFailure(t *testing.T) {
 	// meta.json does not exist
 	stdout := new(bytes.Buffer)
-	err := getMeta("str", "not_exist", stdout)
+	err := getMeta("str", "not_exist", testFile, stdout)
 	if err == nil {
 		t.Fatalf("error should be occured")
 	}
 }
 
 func TestSetMeta_bool(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("bool", "true", testDir)
+	setMeta("bool", "true", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -182,12 +207,13 @@ func TestSetMeta_bool(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 }
+
 func TestSetMeta_number(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("int", "10", testDir)
-	setMeta("float", "15.5", testDir)
+	setMeta("int", "10", testDir, testFile)
+	setMeta("float", "15.5", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -199,10 +225,10 @@ func TestSetMeta_number(t *testing.T) {
 }
 
 func TestSetMeta_string(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("str", "val", testDir)
+	setMeta("str", "val", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -214,10 +240,10 @@ func TestSetMeta_string(t *testing.T) {
 }
 
 func TestSetMeta_array(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("array[]", "arg", testDir)
+	setMeta("array[]", "arg", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -229,10 +255,10 @@ func TestSetMeta_array(t *testing.T) {
 }
 
 func TestSetMeta_array_with_index(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("array[1]", "arg", testDir)
+	setMeta("array[1]", "arg", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -242,7 +268,7 @@ func TestSetMeta_array_with_index(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("array[2]", "argarg", testDir)
+	setMeta("array[2]", "argarg", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -254,11 +280,11 @@ func TestSetMeta_array_with_index(t *testing.T) {
 }
 
 func TestSetMeta_array_with_index_to_string(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("array[1]", "arg", testDir)
-	setMeta("array", "str", testDir)
+	setMeta("array[1]", "arg", testDir, testFile)
+	setMeta("array", "str", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -270,10 +296,10 @@ func TestSetMeta_array_with_index_to_string(t *testing.T) {
 }
 
 func TestSetMeta_object(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("foo.bar", "baz", testDir)
+	setMeta("foo.bar", "baz", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -283,7 +309,7 @@ func TestSetMeta_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo.barbar", "bazbaz", testDir)
+	setMeta("foo.barbar", "bazbaz", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -293,7 +319,7 @@ func TestSetMeta_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo.bar.baz", "piyo", testDir)
+	setMeta("foo.bar.baz", "piyo", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -305,11 +331,11 @@ func TestSetMeta_object(t *testing.T) {
 }
 
 func TestSetMeta_object_to_string(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("foo.bar", "baz", testDir)
-	setMeta("foo", "baz", testDir)
+	setMeta("foo.bar", "baz", testDir, testFile)
+	setMeta("foo", "baz", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -321,10 +347,10 @@ func TestSetMeta_object_to_string(t *testing.T) {
 }
 
 func TestSetMeta_array_with_object(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("foo[1].bar", "baz", testDir)
+	setMeta("foo[1].bar", "baz", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -334,7 +360,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo.bar[1]", "baz", testDir)
+	setMeta("foo.bar[1]", "baz", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -344,7 +370,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo[1].bar[1]", "baz", testDir)
+	setMeta("foo[1].bar[1]", "baz", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -354,7 +380,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo[0].bar[1]", "baz", testDir)
+	setMeta("foo[0].bar[1]", "baz", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -364,7 +390,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo[1].bar[0]", "ba", testDir)
+	setMeta("foo[1].bar[0]", "ba", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -374,7 +400,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo[1].bar[2]", "bazbaz", testDir)
+	setMeta("foo[1].bar[2]", "bazbaz", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -384,7 +410,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo[1].bar[3].baz[1]", "qux", testDir)
+	setMeta("foo[1].bar[3].baz[1]", "qux", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -394,7 +420,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo[1].bar[3].baz[0]", "quxqux", testDir)
+	setMeta("foo[1].bar[3].baz[0]", "quxqux", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -404,7 +430,7 @@ func TestSetMeta_array_with_object(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo[0].bar[3].baz[1]", "qux", testDir)
+	setMeta("foo[0].bar[3].baz[1]", "qux", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -416,10 +442,10 @@ func TestSetMeta_array_with_object(t *testing.T) {
 }
 
 func TestSetMeta_object_with_array(t *testing.T) {
-	setupDir(testDir)
+	setupDir(testDir, testFile)
 	os.Remove(testFilePath)
 
-	setMeta("foo.bar[1]", "baz", testDir)
+	setMeta("foo.bar[1]", "baz", testDir, testFile)
 	out, err := exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -429,7 +455,7 @@ func TestSetMeta_object_with_array(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo.bar[0]", "baz0", testDir)
+	setMeta("foo.bar[0]", "baz0", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
@@ -439,7 +465,7 @@ func TestSetMeta_object_with_array(t *testing.T) {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
 
-	setMeta("foo.barbar[2]", "bazbaz", testDir)
+	setMeta("foo.barbar[2]", "bazbaz", testDir, testFile)
 	out, err = exec.Command("cat", testFilePath).Output()
 	if err != nil {
 		t.Fatal("Meta file did not create.")
