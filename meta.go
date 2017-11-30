@@ -30,7 +30,7 @@ var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 
 // getMeta prints meta value from file based on key
 func getMeta(key string, metaSpace string, metaFile string, output io.Writer) error {
-	metaFilePath := metaSpace + "/" + metaFile
+	metaFilePath := metaSpace + "/" + metaFile + ".json"
 
 	_, err := stat(metaFilePath)
 	// Setup directory if it does not exist
@@ -162,7 +162,7 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 
 // setMeta stores meta to file with key and value
 func setMeta(key string, value string, metaSpace string, metaFile string) error {
-	metaFilePath := metaSpace + "/" + metaFile
+	metaFilePath := metaSpace + "/" + metaFile + ".json"
 	var previousMeta map[string]interface{}
 
 	_, err := stat(metaFilePath)
@@ -291,7 +291,7 @@ func setupDir(metaSpace string, metaFile string) error {
 	if err != nil {
 		return err
 	}
-	err = writeFile(metaSpace+"/"+metaFile, []byte(""), 0666)
+	err = writeFile(metaSpace+"/"+metaFile+".json", []byte(""), 0666)
 	if err != nil {
 		return err
 	}
@@ -354,7 +354,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "external, e",
 			Usage:       "External pipeline meta",
-			Value:       "meta.json",
+			Value:       "meta",
 			Destination: &metaFile,
 		},
 	}

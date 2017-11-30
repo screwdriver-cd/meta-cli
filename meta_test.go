@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-const testFile = "meta.json"
+const testFile = "meta"
 const testDir = "./_test"
-const testFilePath = testDir + "/" + testFile
+const testFilePath = testDir + "/" + testFile + ".json"
 const mockDir = "./mock"
-const externalFile = "sd@123:component.json"
-const externalFilePath = testDir + "/" + externalFile
-const doesNotExistFile = "woof.json"
+const externalFile = "sd@123:component"
+const externalFilePath = testDir + "/" + externalFile + ".json"
+const doesNotExistFile = "woof"
 
 func TestMain(m *testing.M) {
 	// setup functions
@@ -31,7 +31,7 @@ func TestSetupDir(t *testing.T) {
 	setupDir(testDir, testFile)
 	_, err := os.Stat(testFilePath)
 	if err != nil {
-		t.Errorf("could not create %s in %s", testFile, testDir)
+		t.Errorf("could not create %s in %s", testFilePath, testDir)
 	}
 }
 
