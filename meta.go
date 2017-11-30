@@ -31,10 +31,23 @@ var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 // getMeta prints meta value from file based on key
 func getMeta(key string, metaSpace string, metaFile string, output io.Writer) error {
 	metaFilePath := metaSpace + "/" + metaFile
+
+	_, err := stat(metaFilePath)
+	// Setup directory if it does not exist
+	if err != nil {
+		err = setupDir(metaSpace, metaFile)
+		if err != nil {
+			return err
+		}
+		fprintf(output, "null")
+		return nil
+	}
+
 	metaJson, err := readFile(metaFilePath)
 	if err != nil {
 		return err
 	}
+
 	var metaInterface map[string]interface{}
 	err = json.Unmarshal(metaJson, &metaInterface)
 	if err != nil {

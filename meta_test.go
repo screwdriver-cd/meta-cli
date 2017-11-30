@@ -13,6 +13,7 @@ const testFilePath = testDir + "/" + testFile
 const mockDir = "./mock"
 const externalFile = "sd@123:component.json"
 const externalFilePath = testDir + "/" + externalFile
+const doesNotExistFile = "woof.json"
 
 func TestMain(m *testing.M) {
 	// setup functions
@@ -53,6 +54,17 @@ func TestExternalMetaFile(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	getMeta("str", mockDir, externalFile, stdout)
 	expected = []byte("meow")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+}
+
+func TestGetMetaNoFile(t *testing.T) {
+	os.RemoveAll(testDir)
+
+	stdout := new(bytes.Buffer)
+	getMeta("woof", testDir, doesNotExistFile, stdout)
+	expected := []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
@@ -179,15 +191,6 @@ func TestGetMeta(t *testing.T) {
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-}
-
-func TestGetMetaWithFailure(t *testing.T) {
-	// meta.json does not exist
-	stdout := new(bytes.Buffer)
-	err := getMeta("str", "not_exist", testFile, stdout)
-	if err == nil {
-		t.Fatalf("error should be occured")
 	}
 }
 
