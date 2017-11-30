@@ -28,15 +28,26 @@ var fprintf = fmt.Fprintf
 var metaKeyValidator = regexp.MustCompile(`^\w+(((\[\]|\[(0|[1-9]\d*)\]))?(\.\w+)*)*$`)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 
-const metaFile = "meta.json"
-
 // getMeta prints meta value from file based on key
-func getMeta(key string, metaSpace string, output io.Writer) error {
+func getMeta(key string, metaSpace string, metaFile string, output io.Writer) error {
 	metaFilePath := metaSpace + "/" + metaFile
+
+	_, err := stat(metaFilePath)
+	// Setup directory if it does not exist
+	if err != nil {
+		err = setupDir(metaSpace, metaFile)
+		if err != nil {
+			return err
+		}
+		fprintf(output, "null")
+		return nil
+	}
+
 	metaJson, err := readFile(metaFilePath)
 	if err != nil {
 		return err
 	}
+
 	var metaInterface map[string]interface{}
 	err = json.Unmarshal(metaJson, &metaInterface)
 	if err != nil {
@@ -150,14 +161,14 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 }
 
 // setMeta stores meta to file with key and value
-func setMeta(key string, value string, metaSpace string) error {
+func setMeta(key string, value string, metaSpace string, metaFile string) error {
 	metaFilePath := metaSpace + "/" + metaFile
 	var previousMeta map[string]interface{}
 
 	_, err := stat(metaFilePath)
 	// Not exist directory
 	if err != nil {
-		err = setupDir(metaSpace)
+		err = setupDir(metaSpace, metaFile)
 		if err != nil {
 			return err
 		}
@@ -275,7 +286,7 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 }
 
 // setupDir makes directory and json file for meta
-func setupDir(metaSpace string) error {
+func setupDir(metaSpace string, metaFile string) error {
 	err := mkdirAll(metaSpace, 0777)
 	if err != nil {
 		return err
@@ -320,6 +331,7 @@ func main() {
 	defer finalRecover()
 
 	var metaSpace string
+	var metaFile string
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
@@ -339,6 +351,12 @@ func main() {
 			Value:       "/sd/meta",
 			Destination: &metaSpace,
 		},
+		cli.StringFlag{
+			Name:        "external, e",
+			Usage:       "External pipeline meta",
+			Value:       "meta.json",
+			Destination: &metaFile,
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -353,7 +371,7 @@ func main() {
 				if valid := validateMetaKey(key); valid == false {
 					failureExit(errors.New("Meta key validation error"))
 				}
-				err := getMeta(key, metaSpace, os.Stdout)
+				err := getMeta(key, metaSpace, metaFile, os.Stdout)
 				if err != nil {
 					failureExit(err)
 				}
@@ -374,7 +392,7 @@ func main() {
 				if valid := validateMetaKey(key); valid == false {
 					failureExit(errors.New("Meta key validation error"))
 				}
-				err := setMeta(key, val, metaSpace)
+				err := setMeta(key, val, metaSpace, metaFile)
 				if err != nil {
 					failureExit(err)
 				}
