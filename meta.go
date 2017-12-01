@@ -165,6 +165,10 @@ func setMeta(key string, value string, metaSpace string, metaFile string) error 
 	metaFilePath := metaSpace + "/" + metaFile + ".json"
 	var previousMeta map[string]interface{}
 
+	if metaFile != "meta" {
+		return errors.New("Can only meta set current build meta")
+	}
+
 	_, err := stat(metaFilePath)
 	// Not exist directory
 	if err != nil {
