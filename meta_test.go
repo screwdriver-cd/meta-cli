@@ -39,21 +39,16 @@ func TestExternalMetaFile(t *testing.T) {
 	setupDir(testDir, externalFile)
 	os.Remove(externalFilePath)
 
-	// Test set
-	setMeta("str", "val", testDir, externalFile)
-	out, err := exec.Command("cat", externalFilePath).Output()
-	if err != nil {
-		t.Fatal("Meta file did not create.")
-	}
-	expected := []byte("{\"str\":\"val\"}")
-	if bytes.Compare(expected, out) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	// Test set (meta file is not meta.json, should fail)
+	err := setMeta("str", "val", testDir, externalFile)
+	if err == nil {
+		t.Fatalf("error should be occured")
 	}
 
 	// Test get
 	stdout := new(bytes.Buffer)
 	getMeta("str", mockDir, externalFile, stdout)
-	expected = []byte("meow")
+	expected := []byte("meow")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
