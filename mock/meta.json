@@ -1,1 +1,1 @@
-{"str":"fuga","bool":true,"int":1,"float":1.5,"obj":{"ccc":"ddd","momo":{"toke":"toke"}},"ary":["aaa","bbb",{"ccc":{"ddd":[1,2,3]}}], "nu":null}
+{"str":"fuga","bool":true,"int":1234567,"float":1.5,"obj":{"ccc":"ddd","momo":{"toke":"toke"}},"ary":["aaa","bbb",{"ccc":{"ddd":[1234567,2,3]}}], "nu":null}

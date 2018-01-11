@@ -82,7 +82,7 @@ func TestGetMeta(t *testing.T) {
 
 	stdout = new(bytes.Buffer)
 	getMeta("int", mockDir, testFile, stdout)
-	expected = []byte("1")
+	expected = []byte("1234567")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
@@ -117,7 +117,7 @@ func TestGetMeta(t *testing.T) {
 
 	stdout = new(bytes.Buffer)
 	getMeta("ary", mockDir, testFile, stdout)
-	expected = []byte("[\"aaa\",\"bbb\",{\"ccc\":{\"ddd\":[1,2,3]}}]")
+	expected = []byte("[\"aaa\",\"bbb\",{\"ccc\":{\"ddd\":[1234567,2,3]}}]")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
@@ -131,21 +131,21 @@ func TestGetMeta(t *testing.T) {
 
 	stdout = new(bytes.Buffer)
 	getMeta("ary[2]", mockDir, testFile, stdout)
-	expected = []byte("{\"ccc\":{\"ddd\":[1,2,3]}}")
+	expected = []byte("{\"ccc\":{\"ddd\":[1234567,2,3]}}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("ary[2].ccc", mockDir, testFile, stdout)
-	expected = []byte("{\"ddd\":[1,2,3]}")
+	expected = []byte("{\"ddd\":[1234567,2,3]}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
 	getMeta("ary[2].ccc.ddd", mockDir, testFile, stdout)
-	expected = []byte("[1,2,3]")
+	expected = []byte("[1234567,2,3]")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}

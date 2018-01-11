@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,7 +50,10 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer) er
 	}
 
 	var metaInterface map[string]interface{}
-	err = json.Unmarshal(metaJson, &metaInterface)
+	// for Unmarshal integer as integer, not float64
+	decoder := json.NewDecoder(bytes.NewReader(metaJson))
+	decoder.UseNumber()
+	err = decoder.Decode(&metaInterface)
 	if err != nil {
 		return err
 	}
