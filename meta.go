@@ -249,7 +249,7 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaValue.Index(metaIndex).Interface())
 				}
 			}
-			// Insert previous values to metaVelue[] when previousMetaValue type is slice except new value
+			// Insert previous values to metaValue[] when previousMetaValue type is slice except new value
 			if previousMetaValue.Kind() == reflect.Slice {
 				for i := 0; i < previousMetaValue.Len(); i++ {
 					if i != metaIndex {
@@ -357,7 +357,7 @@ func main() {
 		t, _ := time.Parse(time.RFC3339, date)
 		date = t.Format("2006")
 	}
-	app.Copyright = "(c) 2016-" + date + " Yahoo Inc."
+	app.Copyright = "(c) 2017-" + date + " Yahoo Inc."
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
