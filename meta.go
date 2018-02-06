@@ -13,12 +13,18 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/urfave/cli"
+	"gopkg.in/urfave/cli.v1"
 )
 
-// VERSION gets set by the build script via the LDFLAGS
-var VERSION string
+// These variables get set by the build script via the LDFLAGS
+// Detail about these variables are here: https://goreleaser.com/#builds
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
 var mkdirAll = os.MkdirAll
 var stat = os.Stat
@@ -44,14 +50,14 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer) er
 		return nil
 	}
 
-	metaJson, err := readFile(metaFilePath)
+	metaJSON, err := readFile(metaFilePath)
 	if err != nil {
 		return err
 	}
 
 	var metaInterface map[string]interface{}
 	// for Unmarshal integer as integer, not float64
-	decoder := json.NewDecoder(bytes.NewReader(metaJson))
+	decoder := json.NewDecoder(bytes.NewReader(metaJSON))
 	decoder.UseNumber()
 	err = decoder.Decode(&metaInterface)
 	if err != nil {
@@ -62,8 +68,8 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer) er
 
 	switch result.(type) {
 	case map[string]interface{}, []interface{}:
-		resultJson, _ := json.Marshal(result)
-		fprintf(output, "%v", string(resultJson))
+		resultJSON, _ := json.Marshal(result)
+		fprintf(output, "%v", string(resultJSON))
 	case nil:
 		fprintf(output, "null")
 	default:
@@ -147,9 +153,8 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 			}
 			if len(childKey) != 0 {
 				return fetchMetaValue(shortenKey, metaMap[childKey])
-			} else {
-				return fetchMetaValue(shortenKey, metaMap)
 			}
+			return fetchMetaValue(shortenKey, metaMap)
 		}
 	}
 	if len(key) != 0 {
@@ -183,10 +188,10 @@ func setMeta(key string, value string, metaSpace string, metaFile string) error 
 		// Initialize interface if first setting meta
 		previousMeta = make(map[string]interface{})
 	} else {
-		metaJson, _ := readFile(metaFilePath)
+		metaJSON, _ := readFile(metaFilePath)
 		// Exist meta.json
-		if len(metaJson) != 0 {
-			err = json.Unmarshal(metaJson, &previousMeta)
+		if len(metaJSON) != 0 {
+			err = json.Unmarshal(metaJSON, &previousMeta)
 			if err != nil {
 				return err
 			}
@@ -199,9 +204,9 @@ func setMeta(key string, value string, metaSpace string, metaFile string) error 
 	key, parsedValue := setMetaValueRecursive(key, value, previousMeta)
 	previousMeta[key] = parsedValue
 
-	resultJson, err := json.Marshal(previousMeta)
+	resultJSON, err := json.Marshal(previousMeta)
 
-	err = writeFile(metaFilePath, resultJson, 0666)
+	err = writeFile(metaFilePath, resultJSON, 0666)
 	if err != nil {
 		return err
 	}
@@ -219,40 +224,40 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 				key = key[0:current] + key[current+2:] // Remove bracket[] from key
 				key, metaValue[0] = setMetaValueRecursive(key, value, previousMeta)
 				return key, metaValue
-			} else {
-				// Value is array with index
-				rightBracket := indexOfFirstRightBracket(key)
-				metaIndex := metaIndexFromKey(key)   // e.g. if key is foo[10], get "10"
-				keyHead := key[0:current]            // e.g. foo[10].bar -> foo
-				key = keyHead + key[rightBracket+1:] // Remove bracket and number from key. e.g. foo[10].bar -> foo.bar
-
-				previousMetaMap := convertInterfaceToMap(previousMeta)
-				previousMetaValue := reflect.ValueOf(previousMetaMap[keyHead])
-				var metaValue []interface{}
-
-				// previousMetaMap[keyHead] is empty or string, create array with null except value of argument
-				if previousMetaMap[keyHead] == nil || reflect.ValueOf(previousMetaMap[keyHead]).Kind() == reflect.String {
-					metaValue = make([]interface{}, metaIndex+1)
-					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaMap[keyHead])
-				} else {
-					if metaIndex+1 > previousMetaValue.Len() {
-						metaValue = make([]interface{}, metaIndex+1)
-						key, metaValue[metaIndex] = setMetaValueRecursive(key, value, nil)
-					} else {
-						metaValue = make([]interface{}, previousMetaValue.Len())
-						key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaValue.Index(metaIndex).Interface())
-					}
-				}
-				// Insert previous values to metaVelue[] when previousMetaValue type is slice except new value
-				if previousMetaValue.Kind() == reflect.Slice {
-					for i := 0; i < previousMetaValue.Len(); i++ {
-						if i != metaIndex {
-							metaValue[i] = previousMetaValue.Index(i).Interface()
-						}
-					}
-				}
-				return key, metaValue
 			}
+
+			// Value is array with index
+			rightBracket := indexOfFirstRightBracket(key)
+			metaIndex := metaIndexFromKey(key)   // e.g. if key is foo[10], get "10"
+			keyHead := key[0:current]            // e.g. foo[10].bar -> foo
+			key = keyHead + key[rightBracket+1:] // Remove bracket and number from key. e.g. foo[10].bar -> foo.bar
+
+			previousMetaMap := convertInterfaceToMap(previousMeta)
+			previousMetaValue := reflect.ValueOf(previousMetaMap[keyHead])
+			var metaValue []interface{}
+
+			// previousMetaMap[keyHead] is empty or string, create array with null except value of argument
+			if previousMetaMap[keyHead] == nil || reflect.ValueOf(previousMetaMap[keyHead]).Kind() == reflect.String {
+				metaValue = make([]interface{}, metaIndex+1)
+				key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaMap[keyHead])
+			} else {
+				if metaIndex+1 > previousMetaValue.Len() {
+					metaValue = make([]interface{}, metaIndex+1)
+					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, nil)
+				} else {
+					metaValue = make([]interface{}, previousMetaValue.Len())
+					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaValue.Index(metaIndex).Interface())
+				}
+			}
+			// Insert previous values to metaValue[] when previousMetaValue type is slice except new value
+			if previousMetaValue.Kind() == reflect.Slice {
+				for i := 0; i < previousMetaValue.Len(); i++ {
+					if i != metaIndex {
+						metaValue[i] = previousMetaValue.Index(i).Interface()
+					}
+				}
+			}
+			return key, metaValue
 		} else if string([]rune{char}) == "." {
 			// Value is object
 			keyHead := key[0:current]   // e.g. aaa.bbb -> aaa
@@ -345,12 +350,14 @@ func main() {
 	app.Name = "meta-cli"
 	app.Usage = "get or set metadata for Screwdriver build"
 	app.UsageText = "meta command arguments [options]"
-	app.Copyright = "(c) 2017 Yahoo Inc."
+	app.Version = fmt.Sprintf("%v, commit %v, built at %v", version, commit, date)
 
-	if VERSION == "" {
-		VERSION = "0.0.0"
+	if date != "unknown" {
+		// date is passed in from GoReleaser which uses RFC3339 format
+		t, _ := time.Parse(time.RFC3339, date)
+		date = t.Format("2006")
 	}
-	app.Version = VERSION
+	app.Copyright = "(c) 2017-" + date + " Yahoo Inc."
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
