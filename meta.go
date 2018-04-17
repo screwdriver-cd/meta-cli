@@ -32,7 +32,7 @@ var writeFile = ioutil.WriteFile
 var readFile = ioutil.ReadFile
 var fprintf = fmt.Fprintf
 
-var metaKeyValidator = regexp.MustCompile(`^\w+(((\[\]|\[(0|[1-9]\d*)\]))?(\.\w+)*)*$`)
+var metaKeyValidator = regexp.MustCompile(`^(\w+(-*\w+)*)+(((\[\]|\[(0|[1-9]\d*)\]))?(\.(\w+(-*\w+)*)+)*)*$`)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 
 // getMeta prints meta value from file based on key

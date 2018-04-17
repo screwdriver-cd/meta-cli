@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
-	"os/exec"
 	"testing"
 )
 
@@ -90,6 +90,13 @@ func TestGetMeta(t *testing.T) {
 	stdout = new(bytes.Buffer)
 	getMeta("float", mockDir, testFile, stdout)
 	expected = []byte("1.5")
+	if bytes.Compare(expected, stdout.Bytes()) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	}
+
+	stdout = new(bytes.Buffer)
+	getMeta("foo.bar-baz", mockDir, testFile, stdout)
+	expected = []byte("dashed-key")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
@@ -194,9 +201,9 @@ func TestSetMeta_bool(t *testing.T) {
 	os.Remove(testFilePath)
 
 	setMeta("bool", "true", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"bool\":true}")
 	if bytes.Compare(expected, out) != 0 {
@@ -210,9 +217,9 @@ func TestSetMeta_number(t *testing.T) {
 
 	setMeta("int", "10", testDir, testFile)
 	setMeta("float", "15.5", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"float\":15.5,\"int\":10}")
 	if bytes.Compare(expected, out) != 0 {
@@ -225,11 +232,26 @@ func TestSetMeta_string(t *testing.T) {
 	os.Remove(testFilePath)
 
 	setMeta("str", "val", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"str\":\"val\"}")
+	if bytes.Compare(expected, out) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+}
+
+func TestSetMeta_flexibleKey(t *testing.T) {
+	setupDir(testDir, testFile)
+	os.Remove(testFilePath)
+
+	setMeta("foo-bar", "val", testDir, testFile)
+	out, err := ioutil.ReadFile(testFilePath)
+	if err != nil {
+		t.Fatalf("Meta file did not create. error: %v", err)
+	}
+	expected := []byte("{\"foo-bar\":\"val\"}")
 	if bytes.Compare(expected, out) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
@@ -240,9 +262,9 @@ func TestSetMeta_array(t *testing.T) {
 	os.Remove(testFilePath)
 
 	setMeta("array[]", "arg", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"array\":[\"arg\"]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -255,9 +277,9 @@ func TestSetMeta_array_with_index(t *testing.T) {
 	os.Remove(testFilePath)
 
 	setMeta("array[1]", "arg", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"array\":[null,\"arg\"]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -265,9 +287,9 @@ func TestSetMeta_array_with_index(t *testing.T) {
 	}
 
 	setMeta("array[2]", "argarg", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"array\":[null,\"arg\",\"argarg\"]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -281,9 +303,9 @@ func TestSetMeta_array_with_index_to_string(t *testing.T) {
 
 	setMeta("array[1]", "arg", testDir, testFile)
 	setMeta("array", "str", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"array\":\"str\"}")
 	if bytes.Compare(expected, out) != 0 {
@@ -296,9 +318,9 @@ func TestSetMeta_object(t *testing.T) {
 	os.Remove(testFilePath)
 
 	setMeta("foo.bar", "baz", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"foo\":{\"bar\":\"baz\"}}")
 	if bytes.Compare(expected, out) != 0 {
@@ -306,9 +328,9 @@ func TestSetMeta_object(t *testing.T) {
 	}
 
 	setMeta("foo.barbar", "bazbaz", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":{\"bar\":\"baz\",\"barbar\":\"bazbaz\"}}")
 	if bytes.Compare(expected, out) != 0 {
@@ -316,11 +338,21 @@ func TestSetMeta_object(t *testing.T) {
 	}
 
 	setMeta("foo.bar.baz", "piyo", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":{\"bar\":{\"baz\":\"piyo\"},\"barbar\":\"bazbaz\"}}")
+	if bytes.Compare(expected, out) != 0 {
+		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
+	}
+
+	setMeta("foo.bar-baz", "dashed-key", testDir, testFile)
+	out, err = ioutil.ReadFile(testFilePath)
+	if err != nil {
+		t.Fatalf("Meta file did not create. error: %v", err)
+	}
+	expected = []byte("{\"foo\":{\"bar\":{\"baz\":\"piyo\"},\"bar-baz\":\"dashed-key\",\"barbar\":\"bazbaz\"}}")
 	if bytes.Compare(expected, out) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(out))
 	}
@@ -332,9 +364,9 @@ func TestSetMeta_object_to_string(t *testing.T) {
 
 	setMeta("foo.bar", "baz", testDir, testFile)
 	setMeta("foo", "baz", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"foo\":\"baz\"}")
 	if bytes.Compare(expected, out) != 0 {
@@ -347,9 +379,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	os.Remove(testFilePath)
 
 	setMeta("foo[1].bar", "baz", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"foo\":[null,{\"bar\":\"baz\"}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -357,9 +389,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo.bar[1]", "baz", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":{\"bar\":[null,\"baz\"]}}")
 	if bytes.Compare(expected, out) != 0 {
@@ -367,9 +399,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo[1].bar[1]", "baz", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":[null,{\"bar\":[null,\"baz\"]}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -377,9 +409,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo[0].bar[1]", "baz", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":[{\"bar\":[null,\"baz\"]},{\"bar\":[null,\"baz\"]}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -387,9 +419,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo[1].bar[0]", "ba", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":[{\"bar\":[null,\"baz\"]},{\"bar\":[\"ba\",\"baz\"]}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -397,9 +429,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo[1].bar[2]", "bazbaz", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":[{\"bar\":[null,\"baz\"]},{\"bar\":[\"ba\",\"baz\",\"bazbaz\"]}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -407,9 +439,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo[1].bar[3].baz[1]", "qux", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":[{\"bar\":[null,\"baz\"]},{\"bar\":[\"ba\",\"baz\",\"bazbaz\",{\"baz\":[null,\"qux\"]}]}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -417,9 +449,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo[1].bar[3].baz[0]", "quxqux", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":[{\"bar\":[null,\"baz\"]},{\"bar\":[\"ba\",\"baz\",\"bazbaz\",{\"baz\":[\"quxqux\",\"qux\"]}]}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -427,9 +459,9 @@ func TestSetMeta_array_with_object(t *testing.T) {
 	}
 
 	setMeta("foo[0].bar[3].baz[1]", "qux", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":[{\"bar\":[null,\"baz\",null,{\"baz\":[null,\"qux\"]}]},{\"bar\":[\"ba\",\"baz\",\"bazbaz\",{\"baz\":[\"quxqux\",\"qux\"]}]}]}")
 	if bytes.Compare(expected, out) != 0 {
@@ -442,9 +474,9 @@ func TestSetMeta_object_with_array(t *testing.T) {
 	os.Remove(testFilePath)
 
 	setMeta("foo.bar[1]", "baz", testDir, testFile)
-	out, err := exec.Command("cat", testFilePath).Output()
+	out, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected := []byte("{\"foo\":{\"bar\":[null,\"baz\"]}}")
 	if bytes.Compare(expected, out) != 0 {
@@ -452,9 +484,9 @@ func TestSetMeta_object_with_array(t *testing.T) {
 	}
 
 	setMeta("foo.bar[0]", "baz0", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":{\"bar\":[\"baz0\",\"baz\"]}}")
 	if bytes.Compare(expected, out) != 0 {
@@ -462,9 +494,9 @@ func TestSetMeta_object_with_array(t *testing.T) {
 	}
 
 	setMeta("foo.barbar[2]", "bazbaz", testDir, testFile)
-	out, err = exec.Command("cat", testFilePath).Output()
+	out, err = ioutil.ReadFile(testFilePath)
 	if err != nil {
-		t.Fatal("Meta file did not create.")
+		t.Fatalf("Meta file did not create. error: %v", err)
 	}
 	expected = []byte("{\"foo\":{\"bar\":[\"baz0\",\"baz\"],\"barbar\":[null,null,\"bazbaz\"]}}")
 	if bytes.Compare(expected, out) != 0 {
@@ -479,7 +511,17 @@ func TestValidateMetaKeyWithAccept(t *testing.T) {
 		t.Fatalf("'%v' is should be accepted", testKey)
 	}
 
+	testKey = "f-o-o"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
 	testKey = "foo[]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "f-o-o[]"
 	if r = validateMetaKey(testKey); r == false {
 		t.Fatalf("'%v' is should be accepted", testKey)
 	}
@@ -500,6 +542,11 @@ func TestValidateMetaKeyWithAccept(t *testing.T) {
 	}
 
 	testKey = "a[10][20]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "a-b[10][20]"
 	if r = validateMetaKey(testKey); r == false {
 		t.Fatalf("'%v' is should be accepted", testKey)
 	}
@@ -544,7 +591,27 @@ func TestValidateMetaKeyWithAccept(t *testing.T) {
 		t.Fatalf("'%v' is should be accepted", testKey)
 	}
 
+	testKey = "foo.bar-baz"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "f-o-o.bar--baz"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
 	testKey = "foo[1].bar[2].baz[3]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "foo[1].bar-baz[2]"
+	if r = validateMetaKey(testKey); r == false {
+		t.Fatalf("'%v' is should be accepted", testKey)
+	}
+
+	testKey = "f-o-o[1].bar--baz[2]"
 	if r = validateMetaKey(testKey); r == false {
 		t.Fatalf("'%v' is should be accepted", testKey)
 	}
@@ -592,7 +659,22 @@ func TestValidateMetaKeyWithReject(t *testing.T) {
 		t.Fatalf("'%v' is should be rejected", testKey)
 	}
 
-	testKey = "a-b"
+	testKey = "-foo"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo-[]"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo.-bar"
+	if r = validateMetaKey(testKey); r == true {
+		t.Fatalf("'%v' is should be rejected", testKey)
+	}
+
+	testKey = "foo.bar-[]"
 	if r = validateMetaKey(testKey); r == true {
 		t.Fatalf("'%v' is should be rejected", testKey)
 	}
