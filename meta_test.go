@@ -26,12 +26,23 @@ func TestMain(m *testing.M) {
 }
 
 func TestSetupDir(t *testing.T) {
+	var err error
+	var data []byte
+
 	os.RemoveAll(testDir)
 
 	setupDir(testDir, testFile)
-	_, err := os.Stat(testFilePath)
+	_, err = os.Stat(testFilePath)
 	if err != nil {
 		t.Errorf("could not create %s in %s", testFilePath, testDir)
+	}
+
+	data, err = ioutil.ReadFile(testFilePath)
+	if err != nil {
+		t.Errorf("could not read %s in %s", testFilePath, testDir)
+	}
+	if string(data[:]) != "{}"  {
+		t.Errorf("%s does not have an empty JSON object: %v", testFilePath, string(data[:]))
 	}
 }
 

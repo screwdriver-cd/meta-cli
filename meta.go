@@ -304,7 +304,7 @@ func setupDir(metaSpace string, metaFile string) error {
 	if err != nil {
 		return err
 	}
-	err = writeFile(metaSpace+"/"+metaFile+".json", []byte(""), 0666)
+	err = writeFile(metaSpace+"/"+metaFile+".json", []byte("{}"), 0666)
 	if err != nil {
 		return err
 	}
