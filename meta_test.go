@@ -41,7 +41,7 @@ func TestSetupDir(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not read %s in %s", testFilePath, testDir)
 	}
-	if string(data[:]) != "{}"  {
+	if string(data[:]) != "{}" {
 		t.Errorf("%s does not have an empty JSON object: %v", testFilePath, string(data[:]))
 	}
 }
