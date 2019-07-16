@@ -11,7 +11,7 @@ jobs:
         steps:
             - modverify: go mod verify
             - vet: go vet ./...
-            - gofmt: gofmt -d .
+            - gofmt: (! gofmt -d . | grep '^')
             - test: go test ./...
             - build: go build -a -o $SD_ARTIFACTS_DIR/meta
 
