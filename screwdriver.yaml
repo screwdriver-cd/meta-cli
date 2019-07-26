@@ -9,9 +9,9 @@ jobs:
     main:
         requires: [~pr, ~commit]
         steps:
-            - get: go get -v ./...
+            - modverify: go mod verify
             - vet: go vet ./...
-            - gofmt: "find . -name '*.go' | xargs gofmt -s -w"
+            - gofmt: (! gofmt -d . | grep '^')
             - test: go test ./...
             - build: go build -a -o $SD_ARTIFACTS_DIR/meta
 
@@ -19,7 +19,6 @@ jobs:
         requires: [main]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-            - get: go get -v ./...
             - tag: ./ci/git-tag.sh
             - release: "curl -sL https://git.io/goreleaser | bash"
         secrets:
