@@ -34,14 +34,14 @@ GLOBAL OPTIONS:
    --version, -v               print the version
 
 COPYRIGHT:
-   (c) 2017-unknown Yahoo Inc.
+   (c) 2017 Yahoo Inc.
 $ ./meta set aaa bbb
 $ ./meta get aaa
 bbb
 $ ./meta set foo[2].bar[1] baz
 [null,null,{"bar":[null,"baz"]}]
 $ ./meta set foo '{"bar": "baz", "buz": 123}' --json-value
-$ ./meta-cli get foo --json-value
+$ ./meta get foo --json-value
 {"bar":"baz","buz":123}
 $ ./meta get foo.bar
 baz
