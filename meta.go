@@ -286,15 +286,11 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}, j
 		}
 	}
 	if jsonValue {
-		char := value[0]
-		switch char {
-		case '{', '[', '"':
-			var objectValue interface{}
-			if err := json.Unmarshal([]byte(value), &objectValue); err == nil {
-				return key, objectValue
-			} else {
-				log.Panic(err)
-			}
+		var objectValue interface{}
+		if err := json.Unmarshal([]byte(value), &objectValue); err == nil {
+			return key, objectValue
+		} else {
+			log.Panic(err)
 		}
 	}
 	// Value is int
