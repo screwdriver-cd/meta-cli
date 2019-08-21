@@ -287,11 +287,11 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}, j
 	}
 	if jsonValue {
 		var objectValue interface{}
-		if err := json.Unmarshal([]byte(value), &objectValue); err == nil {
-			return key, objectValue
-		} else {
+		err := json.Unmarshal([]byte(value), &objectValue)
+		if err != nil {
 			log.Panic(err)
 		}
+		return key, objectValue
 	}
 	// Value is int
 	i, err := strconv.Atoi(value)
