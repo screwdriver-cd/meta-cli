@@ -549,6 +549,7 @@ func TestSetMeta_json_object(t *testing.T) {
 		key      string
 		value    string
 		expected string
+		wantErr  bool
 	}{
 		{
 			name:     `{"foo":"bar"}`,
@@ -562,10 +563,21 @@ func TestSetMeta_json_object(t *testing.T) {
 			value:    `"foo"`,
 			expected: `{"key":"foo"}`,
 		},
+		{
+			name:    `want error with bogus json`,
+			key:     "key",
+			value:   `"mismatched": "json"}`,
+			wantErr: true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			setupDir(testDir, testFile)
-			os.Remove(testFilePath)
+			defer func() {
+				r := recover()
+				assert.Equal(t, tc.wantErr, r != nil, "wantErr %v; err %v", tc.wantErr, r)
+			}()
+
+			require.NoError(t, setupDir(testDir, testFile))
+			require.NoError(t, os.Remove(testFilePath))
 
 			require.NoError(t, setMeta(tc.key, tc.value, testDir, testFile, true))
 			out, err := ioutil.ReadFile(testFilePath)
