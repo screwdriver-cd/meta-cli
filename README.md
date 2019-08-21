@@ -27,9 +27,11 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --meta-space value  Location of meta temporarily (default: "/sd/meta")
-   --help, -h          show help
-   --version, -v       print the version
+   --meta-space value          Location of meta temporarily (default: "/sd/meta")
+   --external value, -e value  External pipeline meta (default: "meta")
+   --json-value, -j            Treat value as json
+   --help, -h                  show help
+   --version, -v               print the version
 
 COPYRIGHT:
    (c) 2017 Yahoo Inc.
@@ -38,6 +40,13 @@ $ ./meta get aaa
 bbb
 $ ./meta set foo[2].bar[1] baz
 [null,null,{"bar":[null,"baz"]}]
+$ ./meta set foo '{"bar": "baz", "buz": 123}' --json-value
+$ ./meta get foo --json-value
+{"bar":"baz","buz":123}
+$ ./meta get foo.bar
+baz
+$ ./meta get foo.bar --json-value
+"baz"
 ```
 
 ## Testing

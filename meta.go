@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"reflect"
 	"regexp"
@@ -36,7 +37,7 @@ var metaKeyValidator = regexp.MustCompile(`^(\w+(-*\w+)*)+(((\[\]|\[(0|[1-9]\d*)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 
 // getMeta prints meta value from file based on key
-func getMeta(key string, metaSpace string, metaFile string, output io.Writer) error {
+func getMeta(key string, metaSpace string, metaFile string, output io.Writer, jsonValue bool) error {
 	metaFilePath := metaSpace + "/" + metaFile + ".json"
 
 	_, err := stat(metaFilePath)
@@ -73,7 +74,12 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer) er
 	case nil:
 		fprintf(output, "null")
 	default:
-		fprintf(output, "%v", result)
+		if jsonValue {
+			resultJSON, _ := json.Marshal(result)
+			fprintf(output, "%v", string(resultJSON))
+		} else {
+			fprintf(output, "%v", result)
+		}
 	}
 
 	return nil
@@ -170,7 +176,7 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 }
 
 // setMeta stores meta to file with key and value
-func setMeta(key string, value string, metaSpace string, metaFile string) error {
+func setMeta(key string, value string, metaSpace string, metaFile string, jsonValue bool) error {
 	metaFilePath := metaSpace + "/" + metaFile + ".json"
 	var previousMeta map[string]interface{}
 
@@ -201,7 +207,7 @@ func setMeta(key string, value string, metaSpace string, metaFile string) error 
 		}
 	}
 
-	key, parsedValue := setMetaValueRecursive(key, value, previousMeta)
+	key, parsedValue := setMetaValueRecursive(key, value, previousMeta, jsonValue)
 	previousMeta[key] = parsedValue
 
 	resultJSON, err := json.Marshal(previousMeta)
@@ -214,7 +220,7 @@ func setMeta(key string, value string, metaSpace string, metaFile string) error 
 }
 
 // setMetaValueRecursive updates meta
-func setMetaValueRecursive(key string, value string, previousMeta interface{}) (string, interface{}) {
+func setMetaValueRecursive(key string, value string, previousMeta interface{}, jsonValue bool) (string, interface{}) {
 	for current, char := range key {
 		if string([]rune{char}) == "[" {
 			nextChar := key[current+1]
@@ -222,7 +228,7 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 				// Value is array
 				var metaValue [1]interface{}
 				key = key[0:current] + key[current+2:] // Remove bracket[] from key
-				key, metaValue[0] = setMetaValueRecursive(key, value, previousMeta)
+				key, metaValue[0] = setMetaValueRecursive(key, value, previousMeta, jsonValue)
 				return key, metaValue
 			}
 
@@ -239,14 +245,14 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 			// previousMetaMap[keyHead] is empty or string, create array with null except value of argument
 			if previousMetaMap[keyHead] == nil || reflect.ValueOf(previousMetaMap[keyHead]).Kind() == reflect.String {
 				metaValue = make([]interface{}, metaIndex+1)
-				key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaMap[keyHead])
+				key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaMap[keyHead], jsonValue)
 			} else {
 				if metaIndex+1 > previousMetaValue.Len() {
 					metaValue = make([]interface{}, metaIndex+1)
-					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, nil)
+					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, nil, jsonValue)
 				} else {
 					metaValue = make([]interface{}, previousMetaValue.Len())
-					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaValue.Index(metaIndex).Interface())
+					key, metaValue[metaIndex] = setMetaValueRecursive(key, value, previousMetaValue.Index(metaIndex).Interface(), jsonValue)
 				}
 			}
 			// Insert previous values to metaValue[] when previousMetaValue type is slice except new value
@@ -266,17 +272,25 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}) (
 			var tmpValue interface{}
 			previousMetaMap := convertInterfaceToMap(previousMeta)
 			if previousMetaMap[keyHead] == nil {
-				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap)
+				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap, jsonValue)
 			} else {
 				// copy previous object only if it is map
 				previousObj := convertInterfaceToMap(previousMetaMap[keyHead])
 				if len(previousObj) != 0 {
 					obj = previousObj
 				}
-				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap[keyHead])
+				childKey, tmpValue = setMetaValueRecursive(childKey, value, previousMetaMap[keyHead], jsonValue)
 			}
 			obj[childKey] = tmpValue
 			return keyHead, obj
+		}
+	}
+	if jsonValue {
+		var objectValue interface{}
+		if err := json.Unmarshal([]byte(value), &objectValue); err == nil {
+			return key, objectValue
+		} else {
+			log.Panic(err)
 		}
 	}
 	// Value is int
@@ -345,6 +359,7 @@ func main() {
 
 	var metaSpace string
 	var metaFile string
+	var jsonValue bool
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
@@ -372,6 +387,11 @@ func main() {
 			Value:       "meta",
 			Destination: &metaFile,
 		},
+		cli.BoolFlag{
+			Name:        "json-value, j",
+			Usage:       "Treat value as json",
+			Destination: &jsonValue,
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -386,7 +406,7 @@ func main() {
 				if valid := validateMetaKey(key); valid == false {
 					failureExit(errors.New("Meta key validation error"))
 				}
-				err := getMeta(key, metaSpace, metaFile, os.Stdout)
+				err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue)
 				if err != nil {
 					failureExit(err)
 				}
@@ -407,7 +427,7 @@ func main() {
 				if valid := validateMetaKey(key); valid == false {
 					failureExit(errors.New("Meta key validation error"))
 				}
-				err := setMeta(key, val, metaSpace, metaFile)
+				err := setMeta(key, val, metaSpace, metaFile, jsonValue)
 				if err != nil {
 					failureExit(err)
 				}
