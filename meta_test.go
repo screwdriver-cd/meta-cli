@@ -549,23 +549,41 @@ func TestSetMeta_json_object(t *testing.T) {
 		key      string
 		value    string
 		expected string
+		wantErr  bool
 	}{
 		{
-			name:     `{"foo":"bar"}`,
+			name:     `json object`,
 			key:      "key",
 			value:    `{"foo":"bar"}`,
 			expected: `{"key":{"foo":"bar"}}`,
 		},
 		{
-			name:     `"foo"`,
+			name:     `json array`,
+			key:      "key",
+			value:    `[1, 2, 3]`,
+			expected: `{"key":[1,2,3]}`,
+		},
+		{
+			name:     `json string (quoted)`,
 			key:      "key",
 			value:    `"foo"`,
 			expected: `{"key":"foo"}`,
 		},
+		{
+			name:    `want error with bogus json`,
+			key:     "key",
+			value:   `"mismatched": "json"}`,
+			wantErr: true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			setupDir(testDir, testFile)
-			os.Remove(testFilePath)
+			defer func() {
+				r := recover()
+				assert.Equal(t, tc.wantErr, r != nil, "wantErr %v; err %v", tc.wantErr, r)
+			}()
+
+			require.NoError(t, setupDir(testDir, testFile))
+			require.NoError(t, os.Remove(testFilePath))
 
 			require.NoError(t, setMeta(tc.key, tc.value, testDir, testFile, true))
 			out, err := ioutil.ReadFile(testFilePath)
@@ -800,5 +818,59 @@ func TestMetaIndexFromKey(t *testing.T) {
 
 	if i != expected {
 		t.Fatalf("Expected '%d' but '%d'", expected, i)
+	}
+}
+
+func TestSymmetry_json_object(t *testing.T) {
+	for _, tc := range []struct {
+		name                   string
+		key                    string
+		expectJsonEqualNonJson bool
+	}{
+		{
+			name:                   `string value`,
+			key:                    "str",
+			expectJsonEqualNonJson: false,
+		},
+		{
+			name:                   `object value`,
+			key:                    "foo",
+			expectJsonEqualNonJson: true,
+		},
+		{
+			name:                   `array value`,
+			key:                    "ary",
+			expectJsonEqualNonJson: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Get the non-json value from mock
+			stdout := new(bytes.Buffer)
+			require.NoError(t, getMeta(tc.key, mockDir, testFile, stdout, false))
+			nonJsonValue := stdout.String()
+
+			// Get the json value from mock
+			stdout = new(bytes.Buffer)
+			require.NoError(t, getMeta(tc.key, mockDir, testFile, stdout, true))
+			jsonValue := stdout.String()
+
+			// Compare starting condition
+			if tc.expectJsonEqualNonJson {
+				assert.Equal(t, jsonValue, nonJsonValue)
+			} else {
+				assert.NotEqual(t, jsonValue, nonJsonValue)
+			}
+
+			// Reset the output for writing
+			require.NoError(t, setupDir(testDir, testFile))
+			require.NoError(t, os.Remove(testFilePath))
+
+			// Set and get the jsonValue to/from writable file with jsonValue true
+			require.NoError(t, setMeta(tc.key, jsonValue, testDir, testFile, true))
+			stdout = new(bytes.Buffer)
+			require.NoError(t, getMeta(tc.key, testDir, testFile, stdout, true))
+			newJsonValue := stdout.String()
+			assert.Equal(t, jsonValue, newJsonValue)
+		})
 	}
 }
