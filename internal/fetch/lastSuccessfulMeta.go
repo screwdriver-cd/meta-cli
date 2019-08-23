@@ -23,7 +23,7 @@ func (r *LastSuccessfulMetaRequest) JobsForPipelineURL(piplineID int64) string {
 }
 
 func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json string, jobName string) (int64, error) {
-	result := gjson.Get(json, fmt.Sprintf("#(name==%s).id", jobName))
+	result := gjson.Get(json, fmt.Sprintf("#(name==%#v).id", jobName))
 	if !result.Exists() {
 		return 0, fmt.Errorf("jobName %v not found in json", jobName)
 	}
