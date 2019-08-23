@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/screwdriver-cd/meta-cli/internal/fetch"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime/debug"
@@ -360,6 +363,7 @@ func main() {
 	var metaSpace string
 	var metaFile string
 	var jsonValue bool
+	var lastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
@@ -436,7 +440,60 @@ func main() {
 			},
 			Flags: app.Flags,
 		},
+		{
+			Name:  "lastSuccessfulMeta",
+			Usage: "Fetch lastSuccessfulMeta from an external job",
+			ArgsUsage: `job-description
+      job-description may be sd@pipelineid:jobname, sd@jobID or just jobname for same pipeline
+`,
+			Action: func(c *cli.Context) error {
+				if len(c.Args()) < 1 {
+					return cli.ShowCommandHelp(c, c.Command.Name)
+				}
+				jobDescription, err := fetch.ParseJobDescription(c.Args().First())
+				if err != nil {
+					log.Fatal(err)
+				}
+				meta, err := lastSuccessfulMetaRequest.GetLastSuccessfulMeta(http.DefaultTransport, jobDescription)
+				if err != nil {
+					log.Fatal(err)
+				}
+				external, err := jobDescription.ExternalString()
+				if err != nil {
+					log.Fatal(err)
+				}
+				metaFile = external
+				metaFilePath := filepath.Join(metaSpace, metaFile+".json")
+				err = ioutil.WriteFile(metaFilePath, meta, 0666)
+				if err != nil {
+					log.Fatal(err)
+				}
+				return nil
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "sd-token, t",
+					Usage:       "Set the SD_TOKEN to use in SD API calls",
+					EnvVar:      "SD_TOKEN",
+					Destination: &lastSuccessfulMetaRequest.SdToken,
+				},
+				cli.StringFlag{
+					Name:        "sd-api-url, u",
+					Usage:       "Set the SD_API_URL to use in SD API calls",
+					EnvVar:      "SD_API_URL",
+					Destination: &lastSuccessfulMetaRequest.SdApiUrl,
+				},
+				cli.Int64Flag{
+					Name:        "sd-pipeline-id, p",
+					Usage:       "Set the SD_PIPELINE_ID for job description",
+					EnvVar:      "SD_PIPELINE_ID",
+					Destination: &lastSuccessfulMetaRequest.DefaultSdPipelineId,
+				},
+			},
+		},
 	}
 
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
 }
