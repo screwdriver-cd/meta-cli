@@ -345,7 +345,7 @@ func TestLastSuccessfulMetaRequest_GetOrFetchJobId(t *testing.T) {
 
 			tc.request.SdApiUrl = testServer.URL + "/v4/"
 			tc.request.SdToken = "test-token"
-			got, err := tc.request.GetOrFetchJobId(testServer.Client().Transport, &tc.jobDescription)
+			got, err := tc.request.FetchJobId(testServer.Client().Transport, &tc.jobDescription)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -397,7 +397,7 @@ func TestLastSuccessfulMetaRequest_GetLastSuccessfulMeta(t *testing.T) {
 
 			tc.request.SdApiUrl = testServer.URL + "/v4/"
 			tc.request.SdToken = "test-token"
-			got, err := tc.request.GetLastSuccessfulMeta(testServer.Client().Transport, &tc.jobDescription)
+			got, err := tc.request.FetchLastSuccessfulMeta(testServer.Client().Transport, &tc.jobDescription)
 			if tc.wantErr {
 				require.Error(t, err)
 				return

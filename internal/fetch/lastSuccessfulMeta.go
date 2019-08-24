@@ -30,10 +30,7 @@ func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json string, jobName str
 	return result.Int(), nil
 }
 
-func (r *LastSuccessfulMetaRequest) GetOrFetchJobId(roundTripper http.RoundTripper, jobDescription *JobDescription) (int64, error) {
-	if jobDescription.JobID != 0 {
-		return jobDescription.JobID, nil
-	}
+func (r *LastSuccessfulMetaRequest) FetchJobId(roundTripper http.RoundTripper, jobDescription *JobDescription) (int64, error) {
 	if jobDescription.PipelineID == 0 {
 		jobDescription.PipelineID = r.DefaultSdPipelineId
 	}
@@ -57,8 +54,8 @@ func (r *LastSuccessfulMetaRequest) GetOrFetchJobId(roundTripper http.RoundTripp
 	return r.JobIdFromJsonByName(string(data), jobDescription.JobName)
 }
 
-func (r *LastSuccessfulMetaRequest) GetLastSuccessfulMeta(roundTripper http.RoundTripper, jobDescription *JobDescription) ([]byte, error) {
-	jobId, err := r.GetOrFetchJobId(http.DefaultTransport, jobDescription)
+func (r *LastSuccessfulMetaRequest) FetchLastSuccessfulMeta(roundTripper http.RoundTripper, jobDescription *JobDescription) ([]byte, error) {
+	jobId, err := r.FetchJobId(http.DefaultTransport, jobDescription)
 	if err != nil {
 		return nil, err
 	}

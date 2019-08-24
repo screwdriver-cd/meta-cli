@@ -44,7 +44,7 @@ NAME:
 
 USAGE:
    meta lastSuccessfulMeta [command options] job-description
-      job-description may be sd@pipelineid:jobname, sd@jobID or just jobname for same pipeline
+      job-description may be sd@pipelineid:jobname or just jobname for same pipeline
 
 
 OPTIONS:
@@ -67,6 +67,8 @@ $ ./meta get foo.bar --json-value
 "baz"
 $ ./meta lastSuccessfulMeta sd@123:other-job
 $ ./meta get meta --external sd@123:other-job
+$ ./meta lastSuccessfulMeta component
+$ ./meta get meta --external component
 ```
 
 ## Testing

@@ -444,25 +444,22 @@ func main() {
 			Name:  "lastSuccessfulMeta",
 			Usage: "Fetch lastSuccessfulMeta from an external job",
 			ArgsUsage: `job-description
-      job-description may be sd@pipelineid:jobname, sd@jobID or just jobname for same pipeline
+      job-description may be sd@pipelineid:jobname or just jobname for same pipeline
 `,
 			Action: func(c *cli.Context) error {
 				if len(c.Args()) < 1 {
 					return cli.ShowCommandHelp(c, c.Command.Name)
 				}
-				jobDescription, err := fetch.ParseJobDescription(c.Args().First())
+				jobDescription, err := fetch.ParseJobDescription(
+					lastSuccessfulMetaRequest.DefaultSdPipelineId, c.Args().First())
 				if err != nil {
 					log.Fatal(err)
 				}
-				meta, err := lastSuccessfulMetaRequest.GetLastSuccessfulMeta(http.DefaultTransport, jobDescription)
+				meta, err := lastSuccessfulMetaRequest.FetchLastSuccessfulMeta(http.DefaultTransport, jobDescription)
 				if err != nil {
 					log.Fatal(err)
 				}
-				external, err := jobDescription.ExternalString()
-				if err != nil {
-					log.Fatal(err)
-				}
-				metaFile = external
+				metaFile = jobDescription.External
 				metaFilePath := filepath.Join(metaSpace, metaFile+".json")
 				err = ioutil.WriteFile(metaFilePath, meta, 0666)
 				if err != nil {
