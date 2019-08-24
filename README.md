@@ -27,8 +27,9 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --help, -h                  show help
-   --version, -v               print the version
+   --meta-space value  Location of meta temporarily (default: "/sd/meta")
+   --help, -h          show help
+   --version, -v       print the version
 
 COPYRIGHT:
    (c) 2017 Yahoo Inc.
@@ -41,7 +42,6 @@ USAGE:
    meta get [command options] [arguments...]
 
 OPTIONS:
-   --meta-space value          Location of meta temporarily (default: "/sd/meta")
    --external value, -e value  External pipeline meta (default: "meta")
    --json-value, -j            Treat value as json
 
@@ -53,8 +53,7 @@ USAGE:
    meta set [command options] [arguments...]
 
 OPTIONS:
-   --meta-space value          Location of meta temporarily (default: "/sd/meta")
-   --json-value, -j            Treat value as json
+   --json-value, -j  Treat value as json
 
 $ ./meta set aaa bbb
 $ ./meta get aaa

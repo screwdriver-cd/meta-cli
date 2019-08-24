@@ -392,6 +392,8 @@ func main() {
 		Destination: &jsonValue,
 	}
 
+	app.Flags = []cli.Flag{metaSpaceFlag}
+
 	app.Commands = []cli.Command{
 		{
 			Name:  "get",
@@ -411,7 +413,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: []cli.Flag{metaSpaceFlag, externalFlag, jsonValueFlag},
+			Flags: []cli.Flag{externalFlag, jsonValueFlag},
 		},
 		{
 			Name:  "set",
@@ -432,7 +434,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: []cli.Flag{metaSpaceFlag, jsonValueFlag},
+			Flags: []cli.Flag{jsonValueFlag},
 		},
 	}
 
