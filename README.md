@@ -54,7 +54,6 @@ USAGE:
 
 OPTIONS:
    --meta-space value          Location of meta temporarily (default: "/sd/meta")
-   --external value, -e value  External pipeline meta (default: "meta")
    --json-value, -j            Treat value as json
 
 $ ./meta set aaa bbb
