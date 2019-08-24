@@ -374,7 +374,7 @@ func main() {
 	}
 	app.Copyright = "(c) 2017-" + date + " Yahoo Inc."
 
-	app.Flags = []cli.Flag{
+	commonFlags := []cli.Flag{
 		cli.StringFlag{
 			Name:        "meta-space",
 			Usage:       "Location of meta temporarily",
@@ -387,11 +387,11 @@ func main() {
 			Value:       "meta",
 			Destination: &metaFile,
 		},
-		cli.BoolFlag{
-			Name:        "json-value, j",
-			Usage:       "Treat value as json",
-			Destination: &jsonValue,
-		},
+	}
+	jsonValueFlag := cli.BoolFlag{
+		Name:        "json-value, j",
+		Usage:       "Treat value as json",
+		Destination: &jsonValue,
 	}
 
 	app.Commands = []cli.Command{
@@ -413,7 +413,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
+			Flags: append(commonFlags, jsonValueFlag),
 		},
 		{
 			Name:  "set",
@@ -434,7 +434,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
+			Flags: append(commonFlags, jsonValueFlag),
 		},
 	}
 
