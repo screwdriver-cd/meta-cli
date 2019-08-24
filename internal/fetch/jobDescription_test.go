@@ -15,7 +15,7 @@ func Test_parseJobDescription(t *testing.T) {
 	}{
 		{
 			jobDescription:    `sd@123:myName`,
-			defaultPipelineID: 123,
+			defaultPipelineID: 999,
 			want: &JobDescription{
 				External:   `sd@123:myName`,
 				PipelineID: 123,
