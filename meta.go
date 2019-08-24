@@ -413,7 +413,6 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
 		},
 		{
 			Name:  "set",
@@ -434,9 +433,11 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
 		},
 	}
 
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		failureExit(err)
+	}
 }
