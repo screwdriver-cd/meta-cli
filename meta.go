@@ -387,11 +387,11 @@ func main() {
 			Value:       "meta",
 			Destination: &metaFile,
 		},
-		cli.BoolFlag{
-			Name:        "json-value, j",
-			Usage:       "Treat value as json",
-			Destination: &jsonValue,
-		},
+	}
+	jsonValueFlag := cli.BoolFlag{
+		Name:        "json-value, j",
+		Usage:       "Treat value as json",
+		Destination: &jsonValue,
 	}
 
 	app.Commands = []cli.Command{
@@ -413,6 +413,7 @@ func main() {
 				successExit()
 				return nil
 			},
+			Flags: []cli.Flag{jsonValueFlag},
 		},
 		{
 			Name:  "set",
@@ -433,6 +434,7 @@ func main() {
 				successExit()
 				return nil
 			},
+			Flags: []cli.Flag{jsonValueFlag},
 		},
 	}
 
