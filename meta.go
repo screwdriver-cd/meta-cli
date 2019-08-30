@@ -165,8 +165,7 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	}
 	if len(key) != 0 {
 		// convert type interface -> Value -> map[string]interface{}
-		var metaMap map[string]interface{}
-		metaMap = convertInterfaceToMap(meta)
+		var metaMap map[string]interface{} = convertInterfaceToMap(meta)
 		result = metaMap[key]
 	} else {
 		result = meta
@@ -181,7 +180,7 @@ func setMeta(key string, value string, metaSpace string, metaFile string, jsonVa
 	var previousMeta map[string]interface{}
 
 	if metaFile != "meta" {
-		return errors.New("Can only meta set current build meta")
+		return errors.New("can only meta set current build meta")
 	}
 
 	_, err := stat(metaFilePath)
@@ -211,7 +210,9 @@ func setMeta(key string, value string, metaSpace string, metaFile string, jsonVa
 	previousMeta[key] = parsedValue
 
 	resultJSON, err := json.Marshal(previousMeta)
-
+	if err != nil {
+		return err
+	}
 	err = writeFile(metaFilePath, resultJSON, 0666)
 	if err != nil {
 		return err
@@ -403,8 +404,8 @@ func main() {
 					return cli.ShowAppHelp(c)
 				}
 				key := c.Args().Get(0)
-				if valid := validateMetaKey(key); valid == false {
-					failureExit(errors.New("Meta key validation error"))
+				if valid := validateMetaKey(key); !valid {
+					failureExit(errors.New("meta key validation error"))
 				}
 				err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue)
 				if err != nil {
@@ -424,8 +425,8 @@ func main() {
 				}
 				key := c.Args().Get(0)
 				val := c.Args().Get(1)
-				if valid := validateMetaKey(key); valid == false {
-					failureExit(errors.New("Meta key validation error"))
+				if valid := validateMetaKey(key); !valid {
+					failureExit(errors.New("meta key validation error"))
 				}
 				err := setMeta(key, val, metaSpace, metaFile, jsonValue)
 				if err != nil {
