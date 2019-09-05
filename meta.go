@@ -168,8 +168,7 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	}
 	if len(key) != 0 {
 		// convert type interface -> Value -> map[string]interface{}
-		var metaMap map[string]interface{}
-		metaMap = convertInterfaceToMap(meta)
+		var metaMap map[string]interface{} = convertInterfaceToMap(meta)
 		result = metaMap[key]
 	} else {
 		result = meta
@@ -184,7 +183,7 @@ func setMeta(key string, value string, metaSpace string, metaFile string, jsonVa
 	var previousMeta map[string]interface{}
 
 	if metaFile != "meta" {
-		return errors.New("Can only meta set current build meta")
+		return errors.New("can only meta set current build meta")
 	}
 
 	_, err := stat(metaFilePath)
@@ -214,7 +213,9 @@ func setMeta(key string, value string, metaSpace string, metaFile string, jsonVa
 	previousMeta[key] = parsedValue
 
 	resultJSON, err := json.Marshal(previousMeta)
-
+	if err != nil {
+		return err
+	}
 	err = writeFile(metaFilePath, resultJSON, 0666)
 	if err != nil {
 		return err
@@ -290,11 +291,11 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}, j
 	}
 	if jsonValue {
 		var objectValue interface{}
-		if err := json.Unmarshal([]byte(value), &objectValue); err == nil {
-			return key, objectValue
-		} else {
+		err := json.Unmarshal([]byte(value), &objectValue)
+		if err != nil {
 			log.Panic(err)
 		}
+		return key, objectValue
 	}
 	// Value is int
 	i, err := strconv.Atoi(value)
@@ -378,25 +379,25 @@ func main() {
 	}
 	app.Copyright = "(c) 2017-" + date + " Yahoo Inc."
 
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:        "meta-space",
-			Usage:       "Location of meta temporarily",
-			Value:       "/sd/meta",
-			Destination: &metaSpace,
-		},
-		cli.StringFlag{
-			Name:        "external, e",
-			Usage:       "External pipeline meta",
-			Value:       "meta",
-			Destination: &metaFile,
-		},
-		cli.BoolFlag{
-			Name:        "json-value, j",
-			Usage:       "Treat value as json",
-			Destination: &jsonValue,
-		},
+	metaSpaceFlag := cli.StringFlag{
+		Name:        "meta-space",
+		Usage:       "Location of meta temporarily",
+		Value:       "/sd/meta",
+		Destination: &metaSpace,
 	}
+	externalFlag := cli.StringFlag{
+		Name:        "external, e",
+		Usage:       "External pipeline meta",
+		Value:       "meta",
+		Destination: &metaFile,
+	}
+	jsonValueFlag := cli.BoolFlag{
+		Name:        "json-value, j",
+		Usage:       "Treat value as json",
+		Destination: &jsonValue,
+	}
+
+	app.Flags = []cli.Flag{metaSpaceFlag}
 
 	app.Commands = []cli.Command{
 		{
@@ -407,8 +408,8 @@ func main() {
 					return cli.ShowAppHelp(c)
 				}
 				key := c.Args().Get(0)
-				if valid := validateMetaKey(key); valid == false {
-					failureExit(errors.New("Meta key validation error"))
+				if valid := validateMetaKey(key); !valid {
+					failureExit(errors.New("meta key validation error"))
 				}
 				err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue)
 				if err != nil {
@@ -417,7 +418,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
+			Flags: []cli.Flag{externalFlag, jsonValueFlag},
 		},
 		{
 			Name:  "set",
@@ -428,8 +429,8 @@ func main() {
 				}
 				key := c.Args().Get(0)
 				val := c.Args().Get(1)
-				if valid := validateMetaKey(key); valid == false {
-					failureExit(errors.New("Meta key validation error"))
+				if valid := validateMetaKey(key); !valid {
+					failureExit(errors.New("meta key validation error"))
 				}
 				err := setMeta(key, val, metaSpace, metaFile, jsonValue)
 				if err != nil {
@@ -438,7 +439,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
+			Flags: []cli.Flag{jsonValueFlag},
 		},
 		{
 			Name:  "lastSuccessfulMeta",
