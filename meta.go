@@ -375,25 +375,25 @@ func main() {
 	}
 	app.Copyright = "(c) 2017-" + date + " Yahoo Inc."
 
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:        "meta-space",
-			Usage:       "Location of meta temporarily",
-			Value:       "/sd/meta",
-			Destination: &metaSpace,
-		},
-		cli.StringFlag{
-			Name:        "external, e",
-			Usage:       "External pipeline meta",
-			Value:       "meta",
-			Destination: &metaFile,
-		},
-		cli.BoolFlag{
-			Name:        "json-value, j",
-			Usage:       "Treat value as json",
-			Destination: &jsonValue,
-		},
+	metaSpaceFlag := cli.StringFlag{
+		Name:        "meta-space",
+		Usage:       "Location of meta temporarily",
+		Value:       "/sd/meta",
+		Destination: &metaSpace,
 	}
+	externalFlag := cli.StringFlag{
+		Name:        "external, e",
+		Usage:       "External pipeline meta",
+		Value:       "meta",
+		Destination: &metaFile,
+	}
+	jsonValueFlag := cli.BoolFlag{
+		Name:        "json-value, j",
+		Usage:       "Treat value as json",
+		Destination: &jsonValue,
+	}
+
+	app.Flags = []cli.Flag{metaSpaceFlag}
 
 	app.Commands = []cli.Command{
 		{
@@ -414,7 +414,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
+			Flags: []cli.Flag{externalFlag, jsonValueFlag},
 		},
 		{
 			Name:  "set",
@@ -435,7 +435,7 @@ func main() {
 				successExit()
 				return nil
 			},
-			Flags: app.Flags,
+			Flags: []cli.Flag{jsonValueFlag},
 		},
 	}
 
