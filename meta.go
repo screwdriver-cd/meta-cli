@@ -358,9 +358,10 @@ func finalRecover() {
 func main() {
 	defer finalRecover()
 
-	var metaSpace string
-	var metaFile string
-	var jsonValue bool
+	// Set to defaults in case not all commands alter these variables with flags.
+	var metaSpace string = "/sd/meta"
+	var metaFile string = "meta"
+	var jsonValue bool = false
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
