@@ -75,6 +75,7 @@ $ ./meta get foo.bar --json-value
 "baz"
 $ ./meta get meta --external sd@123:other-job
 $ ./meta get meta --external sd@123:other-job --fetch-nonexistent-external
+$ ./meta set -j meta "$(meta get meta -j --external sd@123:other-job --fetch-nonexistent-external)"
 ```
 
 ## Testing
