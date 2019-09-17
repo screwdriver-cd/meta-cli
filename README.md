@@ -71,7 +71,6 @@ $ ./meta get foo.bar
 baz
 $ ./meta get foo.bar --json-value
 "baz"
-$ ./meta lastSuccessfulMeta sd@123:other-job
 $ ./meta get meta --external sd@123:other-job
 ```
 
