@@ -381,7 +381,7 @@ func main() {
 	// Set to defaults in case not all commands alter these variables with flags.
 	var metaSpace string = "/sd/meta"
 	var metaFile string = "meta"
-	var fetchNonexistentExternal = false
+	var skipFetchNonexistentExternal = false
 	var jsonValue bool = false
 	var lastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
 	var loglevel string = logrus.GetLevel().String()
@@ -412,9 +412,9 @@ func main() {
 		Destination: &metaFile,
 	}
 	fetchNonexistentExternalFlag := cli.BoolFlag{
-		Name:        "fetch-nonexistent-external, E",
-		Usage:       "When set, if metadata provided by --external flag is nonexistent, fetch lastSuccessfulMeta from the external job",
-		Destination: &fetchNonexistentExternal,
+		Name:        "skip-fetch, F",
+		Usage:       `Used with --external to skip fetching from lastSuccessfulMeta when not triggered by external job`,
+		Destination: &skipFetchNonexistentExternal,
 	}
 	jsonValueFlag := cli.BoolFlag{
 		Name:        "json-value, j",
@@ -470,7 +470,7 @@ func main() {
 					failureExit(errors.New("meta key validation error"))
 				}
 				fetchNonexistentRequest := &lastSuccessfulMetaRequest
-				if !fetchNonexistentExternal {
+				if skipFetchNonexistentExternal {
 					fetchNonexistentRequest = nil
 				}
 				if err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue, fetchNonexistentRequest); err != nil {

@@ -44,7 +44,7 @@ USAGE:
 
 OPTIONS:
    --external value, -e value        MetaFile pipeline meta (default: "meta")
-   --fetch-nonexistent-external, -E  When set, if metadata provided by --external flag is nonexistent, fetch lastSuccessfulMeta from the external job
+   --skip-fetch, -F                  Used with --external to skip fetching from lastSuccessfulMeta when not triggered by external job
    --json-value, -j                  Treat value as json
    --sd-token value, -t value        Set the SD_TOKEN to use in SD API calls [$SD_TOKEN]
    --sd-api-url value, -u value      Set the SD_API_URL to use in SD API calls (default: "https://api.screwdriver.cd/v4/") [$SD_API_URL]
@@ -74,8 +74,10 @@ baz
 $ ./meta get foo.bar --json-value
 "baz"
 $ ./meta get meta --external sd@123:other-job
-$ ./meta get meta --external sd@123:other-job --fetch-nonexistent-external
-$ ./meta set -j meta "$(meta get meta -j --external sd@123:other-job --fetch-nonexistent-external)"
+$ # For scheduled jobs, e.g. that trigger things normally triggered by component:
+  if [[ "$(./meta get -j meta)" == null ]]; then
+      ./meta set -j meta "$(meta get meta -j --external component)"
+  fi
 ```
 
 ## Testing
