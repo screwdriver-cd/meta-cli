@@ -43,8 +43,11 @@ USAGE:
    meta get [command options] [arguments...]
 
 OPTIONS:
-   --external value, -e value  External pipeline meta (default: "meta")
-   --json-value, -j            Treat value as json
+   --external value, -e value        MetaFile pipeline meta (default: "meta")
+   --json-value, -j                  Treat value as json
+   --sd-token value, -t value        Set the SD_TOKEN to use in SD API calls [$SD_TOKEN]
+   --sd-api-url value, -u value      Set the SD_API_URL to use in SD API calls (default: "https://api.screwdriver.cd/v4/") [$SD_API_URL]
+   --sd-pipeline-id value, -p value  Set the SD_PIPELINE_ID for job description (default: 0) [$SD_PIPELINE_ID]
 
 ---
 NAME:
@@ -56,22 +59,6 @@ USAGE:
 OPTIONS:
    --json-value, -j  Treat value as json
 
-
----
-
-NAME:
-   meta lastSuccessfulMeta - Fetch lastSuccessfulMeta from an external job
-
-USAGE:
-   meta lastSuccessfulMeta [command options] job-description
-      job-description may be sd@pipelineid:jobname or just jobname for same pipeline
-
-
-OPTIONS:
-   --sd-token value, -t value        Set the SD_TOKEN to use in SD API calls [$SD_TOKEN]
-   --sd-api-url value, -u value      Set the SD_API_URL to use in SD API calls [$SD_API_URL]
-   --sd-pipeline-id value, -p value  Set the SD_PIPELINE_ID for job description (default: 0) [$SD_PIPELINE_ID]
-   
 
 $ ./meta set aaa bbb
 $ ./meta get aaa
@@ -87,8 +74,6 @@ $ ./meta get foo.bar --json-value
 "baz"
 $ ./meta lastSuccessfulMeta sd@123:other-job
 $ ./meta get meta --external sd@123:other-job
-$ ./meta lastSuccessfulMeta component
-$ ./meta get meta --external component
 ```
 
 ## Testing
