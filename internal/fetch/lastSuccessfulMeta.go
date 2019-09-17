@@ -31,6 +31,10 @@ func (r *LastSuccessfulMetaRequest) JobsForPipelineURL(piplineID int64) string {
 	return fmt.Sprintf("%spipelines/%d/jobs", r.SdApiUrl, piplineID)
 }
 
+func (r *LastSuccessfulMetaRequest) JobForPipelineURL(piplineID int64, jobName string) string {
+	return fmt.Sprintf("%spipelines/%d/jobs?jobName=%s", r.SdApiUrl, piplineID, jobName)
+}
+
 func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json string, jobName string) (int64, error) {
 	result := gjson.Get(json, fmt.Sprintf("#(name==%#v).id", jobName))
 	if !result.Exists() {
@@ -46,8 +50,8 @@ func (r *LastSuccessfulMetaRequest) FetchJobId(jobDescription *JobDescription) (
 	if jobDescription.PipelineID == 0 {
 		return 0, fmt.Errorf("jobDescription does not have pipelineID %#v", jobDescription)
 	}
-	jobsForPipelineURL := r.JobsForPipelineURL(jobDescription.PipelineID)
-	request, err := http.NewRequest("GET", jobsForPipelineURL, nil)
+	jobForPipelineURL := r.JobForPipelineURL(jobDescription.PipelineID, jobDescription.JobName)
+	request, err := http.NewRequest("GET", jobForPipelineURL, nil)
 	if err != nil {
 		return 0, err
 	}

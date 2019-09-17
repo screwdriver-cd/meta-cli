@@ -17,7 +17,7 @@ func Test_parseJobDescription(t *testing.T) {
 			jobDescription:    `sd@123:myName`,
 			defaultPipelineID: 999,
 			want: &JobDescription{
-				External:   `sd@123:myName`,
+				MetaFile:   `sd@123:myName`,
 				PipelineID: 123,
 				JobName:    "myName",
 			},
@@ -26,7 +26,7 @@ func Test_parseJobDescription(t *testing.T) {
 			jobDescription:    `myName`,
 			defaultPipelineID: 123,
 			want: &JobDescription{
-				External:   `myName`,
+				MetaFile:   `myName`,
 				PipelineID: 123,
 				JobName:    "myName",
 			},

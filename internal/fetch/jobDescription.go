@@ -8,14 +8,14 @@ import (
 var jobDescriptionSDRegExp = regexp.MustCompile(`^sd@(\d+):(\w+)$`)
 
 type JobDescription struct {
-	External   string
+	MetaFile   string
 	PipelineID int64
 	JobName    string
 }
 
 func ParseJobDescription(defaultPipelineID int64, external string) (*JobDescription, error) {
 	ret := &JobDescription{
-		External:   external,
+		MetaFile:   external,
 		PipelineID: defaultPipelineID,
 	}
 	matches := jobDescriptionSDRegExp.FindStringSubmatch(external)

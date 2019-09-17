@@ -403,7 +403,7 @@ func main() {
 	}
 	externalFlag := cli.StringFlag{
 		Name:        "external, e",
-		Usage:       "External pipeline meta",
+		Usage:       "MetaFile pipeline meta",
 		Value:       "meta",
 		Destination: &metaFile,
 	}
