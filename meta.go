@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/screwdriver-cd/meta-cli/internal/fetch"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"os"
@@ -16,6 +14,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/screwdriver-cd/meta-cli/internal/fetch"
+	"github.com/sirupsen/logrus"
 
 	"gopkg.in/urfave/cli.v1"
 )

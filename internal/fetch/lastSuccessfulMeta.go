@@ -2,9 +2,10 @@ package fetch
 
 import (
 	"fmt"
-	"github.com/tidwall/gjson"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/tidwall/gjson"
 )
 
 type LastSuccessfulMetaRequest struct {
