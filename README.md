@@ -22,10 +22,9 @@ VERSION:
    0.0.0
 
 COMMANDS:
-     get                 Get a metadata with key
-     set                 Set a metadata with key and value
-     lastSuccessfulMeta  Fetch lastSuccessfulMeta from an external job
-     help, h             Shows a list of commands or help for one command
+     get      Get a metadata with key
+     set      Set a metadata with key and value
+     help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --meta-space value  Location of meta temporarily (default: "/sd/meta")
