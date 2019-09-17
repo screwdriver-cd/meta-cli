@@ -21,6 +21,8 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
+const kDefaultMetaFile = "meta"
+
 // These variables get set by the build script via the LDFLAGS
 // Detail about these variables are here: https://goreleaser.com/#builds
 var (
@@ -50,7 +52,7 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer, js
 		if err != nil {
 			return err
 		}
-		if lastSuccessfulMetaRequest == nil || metaFile == "meta" {
+		if lastSuccessfulMetaRequest == nil || metaFile == kDefaultMetaFile {
 			logrus.Tracef("lastSuccessfulMetaRequest=%#v, metaFile=%v", lastSuccessfulMetaRequest, metaFile)
 			_, err = io.WriteString(output, "null")
 			return err
@@ -59,9 +61,23 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer, js
 		if err != nil {
 			return err
 		}
-		data, err := lastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription)
-		if err != nil {
-			return err
+		var sb strings.Builder
+		var data []byte
+		externalMetaKey := jobDescription.MetaKey()
+		err = getMeta(externalMetaKey, metaSpace, kDefaultMetaFile, &sb, true, nil)
+		if err == nil && sb.String() != "null" {
+			logrus.Debugf("Found data in external meta key %s", externalMetaKey)
+			data = []byte(sb.String())
+		} else {
+			logrus.Debugf("Fetching metadata from %s", jobDescription.External())
+			data, err = lastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription)
+			if err != nil {
+				return err
+			}
+			err = setMeta(externalMetaKey, string(data), metaSpace, kDefaultMetaFile, true)
+			if err != nil {
+				return err
+			}
 		}
 		logrus.Tracef("Writing fetched metadata to %s", metaFilePath)
 		err = writeFile(metaFilePath, data, 0666)
@@ -199,7 +215,7 @@ func setMeta(key string, value string, metaSpace string, metaFile string, jsonVa
 	metaFilePath := metaSpace + "/" + metaFile + ".json"
 	var previousMeta map[string]interface{}
 
-	if metaFile != "meta" {
+	if metaFile != kDefaultMetaFile {
 		return errors.New("can only meta set current build meta")
 	}
 
@@ -380,8 +396,8 @@ func main() {
 
 	// Set to defaults in case not all commands alter these variables with flags.
 	var metaSpace string = "/sd/meta"
-	var metaFile string = "meta"
 	var skipFetchNonexistentExternal = false
+	var metaFile string = kDefaultMetaFile
 	var jsonValue bool = false
 	var lastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
 	var loglevel string = logrus.GetLevel().String()
@@ -408,7 +424,7 @@ func main() {
 	externalFlag := cli.StringFlag{
 		Name:        "external, e",
 		Usage:       "MetaFile pipeline meta",
-		Value:       "meta",
+		Value:       kDefaultMetaFile,
 		Destination: &metaFile,
 	}
 	fetchNonexistentExternalFlag := cli.BoolFlag{

@@ -44,3 +44,43 @@ func Test_parseJobDescription(t *testing.T) {
 		})
 	}
 }
+
+func TestJobDescription_External(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		jobDescription JobDescription
+	}{
+		{
+			name: "sd@123:fooBar",
+			jobDescription: JobDescription{
+				PipelineID: 123,
+				JobName:    "fooBar",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.jobDescription.External()
+			assert.Equal(t, tc.name, got)
+		})
+	}
+}
+
+func TestJobDescription_MetaKey(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		jobDescription JobDescription
+	}{
+		{
+			name: "sd.123.fooBar",
+			jobDescription: JobDescription{
+				PipelineID: 123,
+				JobName:    "fooBar",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.jobDescription.MetaKey()
+			assert.Equal(t, tc.name, got)
+		})
+	}
+}

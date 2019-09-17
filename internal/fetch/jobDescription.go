@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 )
@@ -30,4 +31,12 @@ func ParseJobDescription(defaultPipelineID int64, external string) (*JobDescript
 	}
 	ret.JobName = matches[2]
 	return ret, nil
+}
+
+func (jd *JobDescription) External() string {
+	return fmt.Sprintf("sd@%d:%s", jd.PipelineID, jd.JobName)
+}
+
+func (jd *JobDescription) MetaKey() string {
+	return fmt.Sprintf("sd.%d.%s", jd.PipelineID, jd.JobName)
 }
