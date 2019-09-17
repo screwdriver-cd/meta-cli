@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const testFile = "meta"
@@ -60,7 +61,7 @@ func TestExternalMetaFile(t *testing.T) {
 
 	// Test get
 	stdout := new(bytes.Buffer)
-	getMeta("str", mockDir, externalFile, stdout, false)
+	getMeta("str", mockDir, externalFile, stdout, false, nil)
 	expected := []byte("meow")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -71,7 +72,7 @@ func TestGetMetaNoFile(t *testing.T) {
 	os.RemoveAll(testDir)
 
 	stdout := new(bytes.Buffer)
-	getMeta("woof", testDir, doesNotExistFile, stdout, false)
+	getMeta("woof", testDir, doesNotExistFile, stdout, false, nil)
 	expected := []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -80,105 +81,105 @@ func TestGetMetaNoFile(t *testing.T) {
 
 func TestGetMeta(t *testing.T) {
 	stdout := new(bytes.Buffer)
-	getMeta("str", mockDir, testFile, stdout, false)
+	getMeta("str", mockDir, testFile, stdout, false, nil)
 	expected := []byte("fuga")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("bool", mockDir, testFile, stdout, false)
+	getMeta("bool", mockDir, testFile, stdout, false, nil)
 	expected = []byte("true")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("int", mockDir, testFile, stdout, false)
+	getMeta("int", mockDir, testFile, stdout, false, nil)
 	expected = []byte("1234567")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("float", mockDir, testFile, stdout, false)
+	getMeta("float", mockDir, testFile, stdout, false, nil)
 	expected = []byte("1.5")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("foo.bar-baz", mockDir, testFile, stdout, false)
+	getMeta("foo.bar-baz", mockDir, testFile, stdout, false, nil)
 	expected = []byte("dashed-key")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("obj", mockDir, testFile, stdout, false)
+	getMeta("obj", mockDir, testFile, stdout, false, nil)
 	expected = []byte("{\"ccc\":\"ddd\",\"momo\":{\"toke\":\"toke\"}}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("obj.ccc", mockDir, testFile, stdout, false)
+	getMeta("obj.ccc", mockDir, testFile, stdout, false, nil)
 	expected = []byte("ddd")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("obj.momo", mockDir, testFile, stdout, false)
+	getMeta("obj.momo", mockDir, testFile, stdout, false, nil)
 	expected = []byte("{\"toke\":\"toke\"}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary", mockDir, testFile, stdout, false)
+	getMeta("ary", mockDir, testFile, stdout, false, nil)
 	expected = []byte("[\"aaa\",\"bbb\",{\"ccc\":{\"ddd\":[1234567,2,3]}}]")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[0]", mockDir, testFile, stdout, false)
+	getMeta("ary[0]", mockDir, testFile, stdout, false, nil)
 	expected = []byte("aaa")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2]", mockDir, testFile, stdout, false)
+	getMeta("ary[2]", mockDir, testFile, stdout, false, nil)
 	expected = []byte("{\"ccc\":{\"ddd\":[1234567,2,3]}}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc", mockDir, testFile, stdout, false)
+	getMeta("ary[2].ccc", mockDir, testFile, stdout, false, nil)
 	expected = []byte("{\"ddd\":[1234567,2,3]}")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc.ddd", mockDir, testFile, stdout, false)
+	getMeta("ary[2].ccc.ddd", mockDir, testFile, stdout, false, nil)
 	expected = []byte("[1234567,2,3]")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc.ddd[1]", mockDir, testFile, stdout, false)
+	getMeta("ary[2].ccc.ddd[1]", mockDir, testFile, stdout, false, nil)
 	expected = []byte("2")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
 	}
 
 	stdout = new(bytes.Buffer)
-	getMeta("nu", mockDir, testFile, stdout, false)
+	getMeta("nu", mockDir, testFile, stdout, false, nil)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -186,7 +187,7 @@ func TestGetMeta(t *testing.T) {
 
 	// The key does not exist in meta.json
 	stdout = new(bytes.Buffer)
-	getMeta("notexist", mockDir, testFile, stdout, false)
+	getMeta("notexist", mockDir, testFile, stdout, false, nil)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -194,7 +195,7 @@ func TestGetMeta(t *testing.T) {
 
 	// It makes golang zero-value
 	stdout = new(bytes.Buffer)
-	getMeta("ary[]", mockDir, testFile, stdout, false)
+	getMeta("ary[]", mockDir, testFile, stdout, false, nil)
 	expected = []byte("aaa")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -202,7 +203,7 @@ func TestGetMeta(t *testing.T) {
 
 	// The key does not exist in meta.json
 	stdout = new(bytes.Buffer)
-	getMeta("ary.aaa.bbb.ccc.ddd[10]", mockDir, testFile, stdout, false)
+	getMeta("ary.aaa.bbb.ccc.ddd[10]", mockDir, testFile, stdout, false, nil)
 	expected = []byte("null")
 	if bytes.Compare(expected, stdout.Bytes()) != 0 {
 		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
@@ -228,7 +229,7 @@ func TestGetMeta_json_object(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			stdout := new(bytes.Buffer)
-			err := getMeta(tc.key, mockDir, testFile, stdout, true)
+			err := getMeta(tc.key, mockDir, testFile, stdout, true, nil)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, stdout.String())
 		})
@@ -846,12 +847,12 @@ func TestSymmetry_json_object(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Get the non-json value from mock
 			stdout := new(bytes.Buffer)
-			require.NoError(t, getMeta(tc.key, mockDir, testFile, stdout, false))
+			require.NoError(t, getMeta(tc.key, mockDir, testFile, stdout, false, nil))
 			nonJsonValue := stdout.String()
 
 			// Get the json value from mock
 			stdout = new(bytes.Buffer)
-			require.NoError(t, getMeta(tc.key, mockDir, testFile, stdout, true))
+			require.NoError(t, getMeta(tc.key, mockDir, testFile, stdout, true, nil))
 			jsonValue := stdout.String()
 
 			// Compare starting condition
@@ -868,7 +869,7 @@ func TestSymmetry_json_object(t *testing.T) {
 			// Set and get the jsonValue to/from writable file with jsonValue true
 			require.NoError(t, setMeta(tc.key, jsonValue, testDir, testFile, true))
 			stdout = new(bytes.Buffer)
-			require.NoError(t, getMeta(tc.key, testDir, testFile, stdout, true))
+			require.NoError(t, getMeta(tc.key, testDir, testFile, stdout, true, nil))
 			newJsonValue := stdout.String()
 			assert.Equal(t, jsonValue, newJsonValue)
 		})
