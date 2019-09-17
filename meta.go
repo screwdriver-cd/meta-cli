@@ -51,6 +51,7 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer, js
 			return err
 		}
 		if lastSuccessfulMetaRequest == nil || metaFile == "meta" {
+			logrus.Tracef("lastSuccessfulMetaRequest=%#v, metaFile=%v", lastSuccessfulMetaRequest, metaFile)
 			_, err = io.WriteString(output, "null")
 			return err
 		}
@@ -62,6 +63,7 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer, js
 		if err != nil {
 			return err
 		}
+		logrus.Tracef("Writing fetched metadata to %s", metaFilePath)
 		err = writeFile(metaFilePath, data, 0666)
 		if err != nil {
 			return err
@@ -379,6 +381,7 @@ func main() {
 	// Set to defaults in case not all commands alter these variables with flags.
 	var metaSpace string = "/sd/meta"
 	var metaFile string = "meta"
+	var fetchNonexistentExternal = false
 	var jsonValue bool = false
 	var lastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
 	var loglevel string = logrus.GetLevel().String()
@@ -403,10 +406,15 @@ func main() {
 		Destination: &metaSpace,
 	}
 	externalFlag := cli.StringFlag{
-		Name:        "external, last-successful, e",
+		Name:        "external, e",
 		Usage:       "MetaFile pipeline meta",
 		Value:       "meta",
 		Destination: &metaFile,
+	}
+	fetchNonexistentExternalFlag := cli.BoolFlag{
+		Name:        "fetch-nonexistent-external, E",
+		Usage:       "When set, if metadata provided by --external flag is nonexistent, fetch lastSuccessfulMeta from the external job",
+		Destination: &fetchNonexistentExternal,
 	}
 	jsonValueFlag := cli.BoolFlag{
 		Name:        "json-value, j",
@@ -428,7 +436,7 @@ func main() {
 	}
 	sdPipelineIdFlag := cli.Int64Flag{
 		Name:        "sd-pipeline-id, p",
-		Usage:       "Set the SD_PIPELINE_ID for job description",
+		Usage:       "Set the SD_PIPELINE_ID of the job for fetching last successful meta",
 		EnvVar:      "SD_PIPELINE_ID",
 		Destination: &lastSuccessfulMetaRequest.DefaultSdPipelineId,
 	}
@@ -461,14 +469,19 @@ func main() {
 				if valid := validateMetaKey(key); !valid {
 					failureExit(errors.New("meta key validation error"))
 				}
-				err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue, &lastSuccessfulMetaRequest)
-				if err != nil {
+				fetchNonexistentRequest := &lastSuccessfulMetaRequest
+				if !fetchNonexistentExternal {
+					fetchNonexistentRequest = nil
+				}
+				if err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue, fetchNonexistentRequest); err != nil {
 					failureExit(err)
 				}
 				successExit()
 				return nil
 			},
-			Flags: []cli.Flag{externalFlag, jsonValueFlag, sdTokenFlag, sdApiUrlFlag, sdPipelineIdFlag},
+			Flags: []cli.Flag{
+				externalFlag, fetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdApiUrlFlag, sdPipelineIdFlag,
+			},
 		},
 		{
 			Name:  "set",

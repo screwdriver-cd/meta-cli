@@ -43,11 +43,12 @@ USAGE:
    meta get [command options] [arguments...]
 
 OPTIONS:
-   --external value, --last-successful value, -e value  MetaFile pipeline meta (default: "meta")
-   --json-value, -j                                     Treat value as json
-   --sd-token value, -t value                           Set the SD_TOKEN to use in SD API calls [$SD_TOKEN]
-   --sd-api-url value, -u value                         Set the SD_API_URL to use in SD API calls (default: "https://api.screwdriver.cd/v4/") [$SD_API_URL]
-   --sd-pipeline-id value, -p value                     Set the SD_PIPELINE_ID for job description (default: 0) [$SD_PIPELINE_ID]
+   --external value, -e value        MetaFile pipeline meta (default: "meta")
+   --fetch-nonexistent-external, -E  When set, if metadata provided by --external flag is nonexistent, fetch lastSuccessfulMeta from the external job
+   --json-value, -j                  Treat value as json
+   --sd-token value, -t value        Set the SD_TOKEN to use in SD API calls [$SD_TOKEN]
+   --sd-api-url value, -u value      Set the SD_API_URL to use in SD API calls (default: "https://api.screwdriver.cd/v4/") [$SD_API_URL]
+   --sd-pipeline-id value, -p value  Set the SD_PIPELINE_ID of the job for fetching last successful meta (default: 0) [$SD_PIPELINE_ID]
 
 ---
 NAME:
@@ -73,6 +74,7 @@ baz
 $ ./meta get foo.bar --json-value
 "baz"
 $ ./meta get meta --external sd@123:other-job
+$ ./meta get meta --external sd@123:other-job --fetch-nonexistent-external
 ```
 
 ## Testing

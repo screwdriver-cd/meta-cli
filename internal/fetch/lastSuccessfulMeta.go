@@ -2,6 +2,7 @@ package fetch
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 
@@ -46,12 +47,14 @@ func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json string, jobName str
 
 func (r *LastSuccessfulMetaRequest) FetchJobId(jobDescription *JobDescription) (int64, error) {
 	if jobDescription.PipelineID == 0 {
+		logrus.Debugf("Defaulting pipelineId to %d", r.DefaultSdPipelineId)
 		jobDescription.PipelineID = r.DefaultSdPipelineId
 	}
 	if jobDescription.PipelineID == 0 {
 		return 0, fmt.Errorf("jobDescription does not have pipelineID %#v", jobDescription)
 	}
 	jobForPipelineURL := r.JobForPipelineURL(jobDescription.PipelineID, jobDescription.JobName)
+	logrus.Tracef("jobForPipelineURL=%s", jobForPipelineURL)
 	request, err := http.NewRequest("GET", jobForPipelineURL, nil)
 	if err != nil {
 		return 0, err
@@ -73,7 +76,9 @@ func (r *LastSuccessfulMetaRequest) FetchLastSuccessfulMeta(jobDescription *JobD
 	if err != nil {
 		return nil, err
 	}
+	logrus.Tracef("jobId=%d", jobId)
 	lastSuccessfulMetaURL := r.LastSuccessfulMetaURL(jobId)
+	logrus.Tracef("lastSuccessfulMetaURL=%s", lastSuccessfulMetaURL)
 	request, err := http.NewRequest("GET", lastSuccessfulMetaURL, nil)
 	if err != nil {
 		return nil, err
