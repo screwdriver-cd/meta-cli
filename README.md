@@ -27,9 +27,10 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --meta-space value  Location of meta temporarily (default: "/sd/meta")
-   --help, -h          show help
-   --version, -v       print the version
+   --meta-space value          Location of meta temporarily (default: "/sd/meta")
+   --loglevel value, -l value  Set the loglevel (default: "info")
+   --help, -h                  show help
+   --version, -v               print the version
 
 COPYRIGHT:
    (c) 2017 Yahoo Inc.
