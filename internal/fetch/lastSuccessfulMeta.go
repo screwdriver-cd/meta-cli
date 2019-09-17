@@ -12,6 +12,15 @@ type LastSuccessfulMetaRequest struct {
 	SdApiUrl string
 
 	DefaultSdPipelineId int64
+
+	Transport http.RoundTripper
+}
+
+func (r *LastSuccessfulMetaRequest) GetTransport() http.RoundTripper {
+	if r.Transport == nil {
+		r.Transport = http.DefaultTransport
+	}
+	return r.Transport
 }
 
 func (r *LastSuccessfulMetaRequest) LastSuccessfulMetaURL(jobID int64) string {
@@ -30,7 +39,7 @@ func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json string, jobName str
 	return result.Int(), nil
 }
 
-func (r *LastSuccessfulMetaRequest) FetchJobId(roundTripper http.RoundTripper, jobDescription *JobDescription) (int64, error) {
+func (r *LastSuccessfulMetaRequest) FetchJobId(jobDescription *JobDescription) (int64, error) {
 	if jobDescription.PipelineID == 0 {
 		jobDescription.PipelineID = r.DefaultSdPipelineId
 	}
@@ -43,7 +52,7 @@ func (r *LastSuccessfulMetaRequest) FetchJobId(roundTripper http.RoundTripper, j
 		return 0, err
 	}
 	request.Header.Add("Authorization", "Bearer "+r.SdToken)
-	response, err := roundTripper.RoundTrip(request)
+	response, err := r.GetTransport().RoundTrip(request)
 	if err != nil {
 		return 0, err
 	}
@@ -54,8 +63,8 @@ func (r *LastSuccessfulMetaRequest) FetchJobId(roundTripper http.RoundTripper, j
 	return r.JobIdFromJsonByName(string(data), jobDescription.JobName)
 }
 
-func (r *LastSuccessfulMetaRequest) FetchLastSuccessfulMeta(roundTripper http.RoundTripper, jobDescription *JobDescription) ([]byte, error) {
-	jobId, err := r.FetchJobId(http.DefaultTransport, jobDescription)
+func (r *LastSuccessfulMetaRequest) FetchLastSuccessfulMeta(jobDescription *JobDescription) ([]byte, error) {
+	jobId, err := r.FetchJobId(jobDescription)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +74,7 @@ func (r *LastSuccessfulMetaRequest) FetchLastSuccessfulMeta(roundTripper http.Ro
 		return nil, err
 	}
 	request.Header.Add("Authorization", "Bearer "+r.SdToken)
-	response, err := roundTripper.RoundTrip(request)
+	response, err := r.GetTransport().RoundTrip(request)
 	if err != nil {
 		return nil, err
 	}

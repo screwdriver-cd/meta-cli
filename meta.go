@@ -6,12 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
+	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"log"
-	"net/http"
 	"os"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime/debug"
@@ -40,20 +38,36 @@ var metaKeyValidator = regexp.MustCompile(`^(\w+(-*\w+)*)+(((\[\]|\[(0|[1-9]\d*)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 
 // getMeta prints meta value from file based on key
-func getMeta(key string, metaSpace string, metaFile string, output io.Writer, jsonValue bool) error {
+func getMeta(key string, metaSpace string, metaFile string, output io.Writer, jsonValue bool, lastSuccessfulMetaRequest *fetch.LastSuccessfulMetaRequest) error {
 	metaFilePath := metaSpace + "/" + metaFile + ".json"
 
 	_, err := stat(metaFilePath)
 	// Setup directory if it does not exist
 	if err != nil {
+		logrus.Debugf("Err statting %v: %v", metaFilePath, err)
 		err = setupDir(metaSpace, metaFile)
 		if err != nil {
 			return err
 		}
-		fprintf(output, "null")
-		return nil
+		if lastSuccessfulMetaRequest == nil || metaFile == "meta" {
+			_, err = io.WriteString(output, "null")
+			return err
+		}
+		jobDescription, err := fetch.ParseJobDescription(lastSuccessfulMetaRequest.DefaultSdPipelineId, metaFile)
+		if err != nil {
+			return err
+		}
+		data, err := lastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription)
+		if err != nil {
+			return err
+		}
+		err = writeFile(metaFilePath, data, 0666)
+		if err != nil {
+			return err
+		}
 	}
 
+	logrus.Tracef("Reading file %v", metaFilePath)
 	metaJSON, err := readFile(metaFilePath)
 	if err != nil {
 		return err
@@ -73,19 +87,19 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer, js
 	switch result.(type) {
 	case map[string]interface{}, []interface{}:
 		resultJSON, _ := json.Marshal(result)
-		fprintf(output, "%v", string(resultJSON))
+		_, err = fprintf(output, "%v", string(resultJSON))
 	case nil:
-		fprintf(output, "null")
+		_, err = fprintf(output, "null")
 	default:
 		if jsonValue {
 			resultJSON, _ := json.Marshal(result)
-			fprintf(output, "%v", string(resultJSON))
+			_, err = fprintf(output, "%v", string(resultJSON))
 		} else {
-			fprintf(output, "%v", result)
+			_, err = fprintf(output, "%v", result)
 		}
 	}
 
-	return nil
+	return err
 }
 
 // indexOfFirstRightBracket gets index of right bracket("]"). e.g. the key is foo[10].bar[4], return 6
@@ -293,7 +307,7 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}, j
 		var objectValue interface{}
 		err := json.Unmarshal([]byte(value), &objectValue)
 		if err != nil {
-			log.Panic(err)
+			logrus.Panic(err)
 		}
 		return key, objectValue
 	}
@@ -366,6 +380,7 @@ func main() {
 	var metaFile string = "meta"
 	var jsonValue bool = false
 	var lastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
+	var loglevel string = logrus.GetLevel().String()
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
@@ -397,8 +412,41 @@ func main() {
 		Usage:       "Treat value as json",
 		Destination: &jsonValue,
 	}
+	sdTokenFlag := cli.StringFlag{
+		Name:        "sd-token, t",
+		Usage:       "Set the SD_TOKEN to use in SD API calls",
+		EnvVar:      "SD_TOKEN",
+		Destination: &lastSuccessfulMetaRequest.SdToken,
+	}
+	sdApiUrlFlag := cli.StringFlag{
+		Name:        "sd-api-url, u",
+		Usage:       "Set the SD_API_URL to use in SD API calls",
+		EnvVar:      "SD_API_URL",
+		Value:       "https://api.screwdriver.cd/v4/",
+		Destination: &lastSuccessfulMetaRequest.SdApiUrl,
+	}
+	sdPipelineIdFlag := cli.Int64Flag{
+		Name:        "sd-pipeline-id, p",
+		Usage:       "Set the SD_PIPELINE_ID for job description",
+		EnvVar:      "SD_PIPELINE_ID",
+		Destination: &lastSuccessfulMetaRequest.DefaultSdPipelineId,
+	}
+	sdLoglevelFlag := cli.StringFlag{
+		Name:        "loglevel, l",
+		Usage:       "Set the loglevel",
+		Value:       logrus.GetLevel().String(),
+		Destination: &loglevel,
+	}
 
-	app.Flags = []cli.Flag{metaSpaceFlag}
+	app.Flags = []cli.Flag{metaSpaceFlag, sdLoglevelFlag}
+	app.Before = func(context *cli.Context) error {
+		level, err := logrus.ParseLevel(loglevel)
+		if err != nil {
+			return err
+		}
+		logrus.SetLevel(level)
+		return nil
+	}
 
 	app.Commands = []cli.Command{
 		{
@@ -412,14 +460,14 @@ func main() {
 				if valid := validateMetaKey(key); !valid {
 					failureExit(errors.New("meta key validation error"))
 				}
-				err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue)
+				err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue, &lastSuccessfulMetaRequest)
 				if err != nil {
 					failureExit(err)
 				}
 				successExit()
 				return nil
 			},
-			Flags: []cli.Flag{externalFlag, jsonValueFlag},
+			Flags: []cli.Flag{externalFlag, jsonValueFlag, sdTokenFlag, sdApiUrlFlag, sdPipelineIdFlag},
 		},
 		{
 			Name:  "set",
@@ -442,57 +490,9 @@ func main() {
 			},
 			Flags: []cli.Flag{jsonValueFlag},
 		},
-		{
-			Name:  "lastSuccessfulMeta",
-			Usage: "Fetch lastSuccessfulMeta from an external job",
-			ArgsUsage: `job-description
-      job-description may be sd@pipelineid:jobname or just jobname for same pipeline
-`,
-			Action: func(c *cli.Context) error {
-				if len(c.Args()) < 1 {
-					return cli.ShowCommandHelp(c, c.Command.Name)
-				}
-				jobDescription, err := fetch.ParseJobDescription(
-					lastSuccessfulMetaRequest.DefaultSdPipelineId, c.Args().First())
-				if err != nil {
-					log.Fatal(err)
-				}
-				meta, err := lastSuccessfulMetaRequest.FetchLastSuccessfulMeta(http.DefaultTransport, jobDescription)
-				if err != nil {
-					log.Fatal(err)
-				}
-				metaFile = jobDescription.External
-				metaFilePath := filepath.Join(metaSpace, metaFile+".json")
-				err = ioutil.WriteFile(metaFilePath, meta, 0666)
-				if err != nil {
-					log.Fatal(err)
-				}
-				return nil
-			},
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:        "sd-token, t",
-					Usage:       "Set the SD_TOKEN to use in SD API calls",
-					EnvVar:      "SD_TOKEN",
-					Destination: &lastSuccessfulMetaRequest.SdToken,
-				},
-				cli.StringFlag{
-					Name:        "sd-api-url, u",
-					Usage:       "Set the SD_API_URL to use in SD API calls",
-					EnvVar:      "SD_API_URL",
-					Destination: &lastSuccessfulMetaRequest.SdApiUrl,
-				},
-				cli.Int64Flag{
-					Name:        "sd-pipeline-id, p",
-					Usage:       "Set the SD_PIPELINE_ID for job description",
-					EnvVar:      "SD_PIPELINE_ID",
-					Destination: &lastSuccessfulMetaRequest.DefaultSdPipelineId,
-				},
-			},
-		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }
