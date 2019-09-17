@@ -42,11 +42,11 @@ USAGE:
    meta get [command options] [arguments...]
 
 OPTIONS:
-   --external value, -e value        MetaFile pipeline meta (default: "meta")
-   --json-value, -j                  Treat value as json
-   --sd-token value, -t value        Set the SD_TOKEN to use in SD API calls [$SD_TOKEN]
-   --sd-api-url value, -u value      Set the SD_API_URL to use in SD API calls (default: "https://api.screwdriver.cd/v4/") [$SD_API_URL]
-   --sd-pipeline-id value, -p value  Set the SD_PIPELINE_ID for job description (default: 0) [$SD_PIPELINE_ID]
+   --external value, --last-successful value, -e value  MetaFile pipeline meta (default: "meta")
+   --json-value, -j                                     Treat value as json
+   --sd-token value, -t value                           Set the SD_TOKEN to use in SD API calls [$SD_TOKEN]
+   --sd-api-url value, -u value                         Set the SD_API_URL to use in SD API calls (default: "https://api.screwdriver.cd/v4/") [$SD_API_URL]
+   --sd-pipeline-id value, -p value                     Set the SD_PIPELINE_ID for job description (default: 0) [$SD_PIPELINE_ID]
 
 ---
 NAME:

@@ -402,7 +402,7 @@ func main() {
 		Destination: &metaSpace,
 	}
 	externalFlag := cli.StringFlag{
-		Name:        "external, e",
+		Name:        "external, last-successful, e",
 		Usage:       "MetaFile pipeline meta",
 		Value:       "meta",
 		Destination: &metaFile,
