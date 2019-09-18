@@ -180,9 +180,8 @@ func (m *MetaSpec) Get(key string) (string, error) {
 		if m.JsonValue {
 			resultJSON, _ := json.Marshal(result)
 			return fmt.Sprintf("%v", string(resultJSON)), nil
-		} else {
-			return fmt.Sprintf("%v", result), nil
 		}
+		return fmt.Sprintf("%v", result), nil
 	}
 }
 
