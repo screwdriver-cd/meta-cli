@@ -95,6 +95,7 @@ func (s *MetaSuite) TestExternalMetaFile() {
 	Require.NoError(s.CopyMockFile(externalFile))
 
 	got, err := s.MetaSpec.Get("str")
+	Require.NoError(err)
 	Assert := s.Assert()
 	Assert.Equal("meow", got)
 }
@@ -680,6 +681,7 @@ func (s *MetaSuite) TestSymmetry_json_object() {
 			// Set and get the jsonValue to/from writable file with jsonValue true
 			Require.NoError(s.MetaSpec.Set(tt.key, jsonValue))
 			newJsonValue, err := s.MetaSpec.Get(tt.key)
+			Require.NoError(err)
 			Assert.Equal(jsonValue, newJsonValue)
 		})
 	}
