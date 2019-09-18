@@ -2,10 +2,10 @@ package fetch
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
