@@ -1,1 +1,1 @@
-{"ary":["aaa","bbb",{"ccc":{"ddd":[1234567,2,3]}}],"bool":true,"float":1.5,"foo":{"bar-baz":"dashed-key"},"int":1234567,"nu":null,"obj":{"ccc":"ddd","momo":{"toke":"toke"}},"sd":{"123":{"component":"{\"str\":\"meow\"}\n"}},"str":"fuga"}
+{"str":"fuga","bool":true,"int":1234567,"float":1.5,"foo":{"bar-baz":"dashed-key"},"obj":{"ccc":"ddd","momo":{"toke":"toke"}},"ary":["aaa","bbb",{"ccc":{"ddd":[1234567,2,3]}}], "nu":null}
