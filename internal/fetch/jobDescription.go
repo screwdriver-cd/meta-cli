@@ -9,11 +9,15 @@ import (
 var jobDescriptionSDRegExp = regexp.MustCompile(`^sd@(\d+):(\w+)$`)
 
 type JobDescription struct {
-	MetaFile   string
+	// The base name of the meta file (without the .json extension)
+	MetaFile string
+	// The pipeline ID for this job
 	PipelineID int64
-	JobName    string
+	// The name of the job
+	JobName string
 }
 
+// ParseJobDescription parses the string of the form sd@123:jobName or jobName to create a new JobDescription object
 func ParseJobDescription(defaultPipelineID int64, external string) (*JobDescription, error) {
 	ret := &JobDescription{
 		MetaFile:   external,
@@ -33,10 +37,12 @@ func ParseJobDescription(defaultPipelineID int64, external string) (*JobDescript
 	return ret, nil
 }
 
+// External returns a representation of the JobDescription appropriate for use in meta get's --external flag
 func (jd *JobDescription) External() string {
 	return fmt.Sprintf("sd@%d:%s", jd.PipelineID, jd.JobName)
 }
 
+// MetaKey returns a valid meta key unique to this job-description, which may be used for storing metadata
 func (jd *JobDescription) MetaKey() string {
 	return fmt.Sprintf("sd.%d.%s", jd.PipelineID, jd.JobName)
 }

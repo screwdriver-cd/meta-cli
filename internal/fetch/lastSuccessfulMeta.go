@@ -10,14 +10,19 @@ import (
 )
 
 type LastSuccessfulMetaRequest struct {
-	SdToken  string
+	// The screwdriver OAuth2 token
+	SdToken string
+	// The base url to the screwdriver rest API.
 	SdApiUrl string
 
+	// The default pipeline id to handle external names with just the jobName (no sd@pipelineId)
 	DefaultSdPipelineId int64
 
+	// The transport to use in calling the screwdriver REST apis (when nil, uses http.DefaultTransport)
 	Transport http.RoundTripper
 }
 
+// GetTransport returns a non-nil transport, assigning the default when nil
 func (r *LastSuccessfulMetaRequest) GetTransport() http.RoundTripper {
 	if r.Transport == nil {
 		r.Transport = http.DefaultTransport
@@ -25,19 +30,23 @@ func (r *LastSuccessfulMetaRequest) GetTransport() http.RoundTripper {
 	return r.Transport
 }
 
+// LastSuccessfulMetaURL returns the URL for using the screwdriver lastSuccessfulMeta REST API
 func (r *LastSuccessfulMetaRequest) LastSuccessfulMetaURL(jobID int64) string {
 	return fmt.Sprintf("%sjobs/%d/lastSuccessfulMeta", r.SdApiUrl, jobID)
 }
 
+// JobsForPipelineURL returns the URL for using the screwdriver jobs REST API for a given pipelineID
 func (r *LastSuccessfulMetaRequest) JobsForPipelineURL(piplineID int64) string {
 	return fmt.Sprintf("%spipelines/%d/jobs", r.SdApiUrl, piplineID)
 }
 
+// JobForPipelineURL returns the URL for using the screwdriver jobs REST API for a given pipelineID and jobName
 func (r *LastSuccessfulMetaRequest) JobForPipelineURL(piplineID int64, jobName string) string {
 	return fmt.Sprintf("%spipelines/%d/jobs?jobName=%s", r.SdApiUrl, piplineID, jobName)
 }
 
-func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json string, jobName string) (int64, error) {
+// JobIdFromJsonByName extracts the ID of the given jobName from the json string
+func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json, jobName string) (int64, error) {
 	result := gjson.Get(json, fmt.Sprintf("#(name==%#v).id", jobName))
 	if !result.Exists() {
 		return 0, fmt.Errorf("jobName %v not found in json", jobName)
@@ -45,6 +54,7 @@ func (r *LastSuccessfulMetaRequest) JobIdFromJsonByName(json string, jobName str
 	return result.Int(), nil
 }
 
+// FetchJobId fetches the job information from the given jobDescription, parses and returns the job id
 func (r *LastSuccessfulMetaRequest) FetchJobId(jobDescription *JobDescription) (int64, error) {
 	if jobDescription.PipelineID == 0 {
 		logrus.Debugf("Defaulting pipelineId to %d", r.DefaultSdPipelineId)
@@ -71,6 +81,7 @@ func (r *LastSuccessfulMetaRequest) FetchJobId(jobDescription *JobDescription) (
 	return r.JobIdFromJsonByName(string(data), jobDescription.JobName)
 }
 
+// FetchLastSuccessfulMeta fetches the last successful meta from the given jobDescription and returns raw data
 func (r *LastSuccessfulMetaRequest) FetchLastSuccessfulMeta(jobDescription *JobDescription) ([]byte, error) {
 	jobId, err := r.FetchJobId(jobDescription)
 	if err != nil {

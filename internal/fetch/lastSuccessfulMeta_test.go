@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	kMockHttpDir            = "../../mockHttp"
-	kJobsJsonFile           = "jobs.json"
-	kLastSuccessfulMetaFile = "lastSuccessfulMeta.json"
+	mockHttpDir            = "../../mockHttp"
+	jobsJsonFile           = "jobs.json"
+	lastSuccessfulMetaFile = "lastSuccessfulMeta.json"
 )
 
 type MockHandler struct {
@@ -33,11 +33,11 @@ type LastSuccessfulMetaSuite struct {
 }
 
 func (s *LastSuccessfulMetaSuite) SetupSuite() {
-	data, err := ioutil.ReadFile(filepath.Join(kMockHttpDir, kJobsJsonFile))
+	data, err := ioutil.ReadFile(filepath.Join(mockHttpDir, jobsJsonFile))
 	s.Require().NoError(err)
 	s.JobsJson = string(data)
 
-	data, err = ioutil.ReadFile(filepath.Join(kMockHttpDir, kLastSuccessfulMetaFile))
+	data, err = ioutil.ReadFile(filepath.Join(mockHttpDir, lastSuccessfulMetaFile))
 	s.Require().NoError(err)
 	s.LastSuccessfulMetaJson = string(data)
 }
