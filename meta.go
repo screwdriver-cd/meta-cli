@@ -192,6 +192,9 @@ func (m *MetaSpec) Set(key string, value string) error {
 	metaJSON, err := ioutil.ReadFile(metaFilePath)
 	// Not exist directory
 	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
 		_, err := m.SetupDir()
 		if err != nil {
 			return err
