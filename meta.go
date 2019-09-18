@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	kDefaultMetaFile  = "meta"
-	kDefaultMetaSpace = "/sd/meta"
+	defaultMetaFile  = "meta"
+	defaultMetaSpace = "/sd/meta"
 )
 
 // These variables get set by the build script via the LDFLAGS
@@ -59,13 +59,13 @@ func (m *MetaSpec) MetaFilePath() string {
 
 // IsExternal determines whether the meta is the default or externally provided.
 func (m *MetaSpec) IsExternal() bool {
-	return m.MetaFile != kDefaultMetaFile
+	return m.MetaFile != defaultMetaFile
 }
 
 // CloneDefaultMeta returns a copy of |m| with the default meta.
 func (m *MetaSpec) CloneDefaultMeta() *MetaSpec {
 	ret := *m
-	ret.MetaFile = kDefaultMetaFile
+	ret.MetaFile = defaultMetaFile
 	return &ret
 }
 
@@ -459,9 +459,9 @@ func main() {
 
 	// Set to defaults in case not all commands alter these variables with flags.
 	metaSpec := MetaSpec{
-		MetaSpace:                    kDefaultMetaSpace,
+		MetaSpace:                    defaultMetaSpace,
 		SkipFetchNonexistentExternal: false,
-		MetaFile:                     kDefaultMetaFile,
+		MetaFile:                     defaultMetaFile,
 		JsonValue:                    false,
 	}
 	var loglevel string = logrus.GetLevel().String()
@@ -488,7 +488,7 @@ func main() {
 	externalFlag := cli.StringFlag{
 		Name:        "external, e",
 		Usage:       "MetaFile pipeline meta",
-		Value:       kDefaultMetaFile,
+		Value:       defaultMetaFile,
 		Destination: &metaSpec.MetaFile,
 	}
 	fetchNonexistentExternalFlag := cli.BoolFlag{
