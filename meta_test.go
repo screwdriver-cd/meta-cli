@@ -1,11 +1,6 @@
 package main
 
 import (
-	"github.com/screwdriver-cd/meta-cli/internal/fetch"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-	"github.com/termie/go-shutil"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/screwdriver-cd/meta-cli/internal/fetch"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+	"github.com/termie/go-shutil"
 )
 
 const (
