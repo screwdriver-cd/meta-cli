@@ -17,33 +17,33 @@ import (
 )
 
 const (
-	testFile                = "meta"
-	testDir                 = "./_test"
-	testFilePath            = testDir + "/" + testFile + ".json"
-	mockDir                 = "./mock"
-	externalFile            = "sd@123:component"
-	externalFilePath        = testDir + "/" + externalFile + ".json"
-	doesNotExistFile        = "woof"
-	kMockHttpDir            = "mockHttp"
-	kJobsJsonFile           = "jobs.json"
-	kLastSuccessfulMetaFile = "lastSuccessfulMeta.json"
+	testFile               = "meta"
+	testDir                = "./_test"
+	testFilePath           = testDir + "/" + testFile + ".json"
+	mockDir                = "./mock"
+	externalFile           = "sd@123:component"
+	externalFilePath       = testDir + "/" + externalFile + ".json"
+	doesNotExistFile       = "woof"
+	mockHTTPDir            = "mockHttp"
+	jobsJSONFile           = "jobs.json"
+	lastSuccessfulMetaFile = "lastSuccessfulMeta.json"
 )
 
 type MetaSuite struct {
 	suite.Suite
 	MetaSpec               MetaSpec
-	JobsJson               string
-	LastSuccessfulMetaJson string
+	JobsJSON               string
+	LastSuccessfulMetaJSON string
 }
 
 func (s *MetaSuite) SetupSuite() {
-	data, err := ioutil.ReadFile(filepath.Join(kMockHttpDir, kJobsJsonFile))
+	data, err := ioutil.ReadFile(filepath.Join(mockHTTPDir, jobsJSONFile))
 	s.Require().NoError(err)
-	s.JobsJson = string(data)
+	s.JobsJSON = string(data)
 
-	data, err = ioutil.ReadFile(filepath.Join(kMockHttpDir, kLastSuccessfulMetaFile))
+	data, err = ioutil.ReadFile(filepath.Join(mockHTTPDir, lastSuccessfulMetaFile))
 	s.Require().NoError(err)
-	s.LastSuccessfulMetaJson = string(data)
+	s.LastSuccessfulMetaJSON = string(data)
 
 }
 
@@ -219,7 +219,7 @@ func (s *MetaSuite) TestGetMeta() {
 }
 
 func (s *MetaSuite) TestGetMeta_json_object() {
-	s.MetaSpec.JsonValue = true
+	s.MetaSpec.JSONValue = true
 	s.Require().NoError(s.CopyMockFile(testFile))
 
 	tests := []struct {
@@ -458,7 +458,7 @@ func (s *MetaSuite) TestSetMeta_sequential() {
 }
 
 func (s *MetaSuite) TestSetMeta_json_object() {
-	s.MetaSpec.JsonValue = true
+	s.MetaSpec.JSONValue = true
 
 	tests := []struct {
 		name     string
@@ -626,29 +626,29 @@ func (s *MetaSuite) TestMetaIndexFromKey() {
 }
 
 func (s *MetaSuite) TestSymmetry_json_object() {
-	nonJsonMetaSpec := s.MetaSpec
-	nonJsonMetaSpec.JsonValue = false
-	s.MetaSpec.JsonValue = true
+	nonJSONMetaSpec := s.MetaSpec
+	nonJSONMetaSpec.JSONValue = false
+	s.MetaSpec.JSONValue = true
 
 	tests := []struct {
 		name                   string
 		key                    string
-		expectJsonEqualNonJson bool
+		expectJSONEqualNonJSON bool
 	}{
 		{
 			name:                   `string value`,
 			key:                    "str",
-			expectJsonEqualNonJson: false,
+			expectJSONEqualNonJSON: false,
 		},
 		{
 			name:                   `object value`,
 			key:                    "foo",
-			expectJsonEqualNonJson: true,
+			expectJSONEqualNonJSON: true,
 		},
 		{
 			name:                   `array value`,
 			key:                    "ary",
-			expectJsonEqualNonJson: true,
+			expectJSONEqualNonJSON: true,
 		},
 	}
 
@@ -658,7 +658,7 @@ func (s *MetaSuite) TestSymmetry_json_object() {
 			Require.NoError(s.CopyMockFile(testFile))
 
 			// Get the non-json value from mock
-			nonJsonValue, err := nonJsonMetaSpec.Get(tt.key)
+			nonJSONValue, err := nonJSONMetaSpec.Get(tt.key)
 			Require.NoError(err)
 
 			// Get the json value from mock
@@ -667,10 +667,10 @@ func (s *MetaSuite) TestSymmetry_json_object() {
 
 			Assert := s.Assert()
 			// Compare starting condition
-			if tt.expectJsonEqualNonJson {
-				Assert.Equal(jsonValue, nonJsonValue)
+			if tt.expectJSONEqualNonJSON {
+				Assert.Equal(jsonValue, nonJSONValue)
 			} else {
-				Assert.NotEqual(jsonValue, nonJsonValue)
+				Assert.NotEqual(jsonValue, nonJSONValue)
 			}
 
 			// Reset the output for writing
@@ -680,9 +680,9 @@ func (s *MetaSuite) TestSymmetry_json_object() {
 
 			// Set and get the jsonValue to/from writable file with jsonValue true
 			Require.NoError(s.MetaSpec.Set(tt.key, jsonValue))
-			newJsonValue, err := s.MetaSpec.Get(tt.key)
+			newJSONValue, err := s.MetaSpec.Get(tt.key)
 			Require.NoError(err)
-			Assert.Equal(jsonValue, newJsonValue)
+			Assert.Equal(jsonValue, newJSONValue)
 		})
 	}
 }
@@ -742,7 +742,7 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 		{
 			name:     "sd@1016708:job1",
 			external: "sd@1016708:job1",
-			expected: s.LastSuccessfulMetaJson,
+			expected: s.LastSuccessfulMetaJSON,
 		},
 		{
 			name:     "sd@123:missing",
@@ -759,14 +759,14 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 			})).
 				Once().
 				Run(func(args mock.Arguments) {
-					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.JobsJson)
+					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.JobsJSON)
 				})
 			mockHandler.On("ServeHTTP", mock.Anything, mock.MatchedBy(func(req *http.Request) bool {
 				return req.URL.Path == "/v4/jobs/392525/lastSuccessfulMeta"
 			})).
 				Once().
 				Run(func(args mock.Arguments) {
-					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.LastSuccessfulMetaJson)
+					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.LastSuccessfulMetaJSON)
 				})
 			testServer := httptest.NewServer(&mockHandler)
 			defer testServer.Close()

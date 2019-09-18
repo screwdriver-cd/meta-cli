@@ -47,7 +47,7 @@ type MetaSpec struct {
 	// The base name of the meta file (without .json extension)
 	MetaFile string
 	// When true, treat values (for get and set) as json objects, otherwise set is string, get is value-dependent
-	JsonValue bool
+	JSONValue bool
 	// The object describing information required to fetch metadata from external sources
 	LastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
 }
@@ -177,7 +177,7 @@ func (m *MetaSpec) Get(key string) (string, error) {
 	case nil:
 		return "null", nil
 	default:
-		if m.JsonValue {
+		if m.JSONValue {
 			resultJSON, _ := json.Marshal(result)
 			return fmt.Sprintf("%v", string(resultJSON)), nil
 		}
@@ -218,7 +218,7 @@ func (m *MetaSpec) Set(key string, value string) error {
 		}
 	}
 
-	key, parsedValue := setMetaValueRecursive(key, value, previousMeta, m.JsonValue)
+	key, parsedValue := setMetaValueRecursive(key, value, previousMeta, m.JSONValue)
 	previousMeta[key] = parsedValue
 
 	resultJSON, err := json.Marshal(previousMeta)
@@ -451,7 +451,7 @@ func main() {
 		MetaSpace:                    defaultMetaSpace,
 		SkipFetchNonexistentExternal: false,
 		MetaFile:                     defaultMetaFile,
-		JsonValue:                    false,
+		JSONValue:                    false,
 	}
 	var loglevel string = logrus.GetLevel().String()
 
@@ -489,7 +489,7 @@ func main() {
 		Name: "json-value, j",
 		Usage: "Treat value as json. When false, set values are treated as string; get is value-dependent" +
 			"and strings are not json-escaped",
-		Destination: &metaSpec.JsonValue,
+		Destination: &metaSpec.JSONValue,
 	}
 	sdTokenFlag := cli.StringFlag{
 		Name:        "sd-token, t",
@@ -497,14 +497,14 @@ func main() {
 		EnvVar:      "SD_TOKEN",
 		Destination: &metaSpec.LastSuccessfulMetaRequest.SdToken,
 	}
-	sdApiUrlFlag := cli.StringFlag{
+	sdAPIURLFlag := cli.StringFlag{
 		Name:        "sd-api-url, u",
 		Usage:       "Set the SD_API_URL to use in SD API calls",
 		EnvVar:      "SD_API_URL",
 		Value:       "https://api.screwdriver.cd/v4/",
 		Destination: &metaSpec.LastSuccessfulMetaRequest.SdApiUrl,
 	}
-	sdPipelineIdFlag := cli.Int64Flag{
+	sdPipelineIDFlag := cli.Int64Flag{
 		Name:        "sd-pipeline-id, p",
 		Usage:       "Set the SD_PIPELINE_ID of the job for fetching last successful meta",
 		EnvVar:      "SD_PIPELINE_ID",
@@ -551,7 +551,7 @@ func main() {
 				return nil
 			},
 			Flags: []cli.Flag{
-				externalFlag, fetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdApiUrlFlag, sdPipelineIdFlag,
+				externalFlag, fetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdAPIURLFlag, sdPipelineIDFlag,
 			},
 		},
 		{
