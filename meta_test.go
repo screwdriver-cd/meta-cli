@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -198,6 +197,7 @@ func (s *MetaSuite) TestGetMeta() {
 }
 
 func (s *MetaSuite) TestGetMeta_json_object() {
+	s.MetaSpec.JsonValue = true
 	s.Require().NoError(s.CopyMockFile(testFile))
 
 	for _, tc := range []struct {
@@ -217,10 +217,9 @@ func (s *MetaSuite) TestGetMeta_json_object() {
 		},
 	} {
 		s.Run(tc.name, func() {
-			stdout := new(bytes.Buffer)
-			err := getMeta(tc.key, mockDir, testFile, stdout, true, nil)
+			got, err := s.MetaSpec.Get(tc.key)
 			s.Require().NoError(err)
-			s.Assert().Equal(tc.expected, stdout.String())
+			s.Assert().Equal(tc.expected, got)
 		})
 	}
 }

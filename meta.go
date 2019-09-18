@@ -181,25 +181,6 @@ func (m *MetaSpec) Set(key string, value string) error {
 	return setMeta(key, value, m.MetaSpace, m.MetaFile, m.JsonValue)
 }
 
-// getMeta prints meta value from file based on key
-func getMeta(key string, metaSpace string, metaFile string, output io.Writer, jsonValue bool, lastSuccessfulMetaRequest *fetch.LastSuccessfulMetaRequest) error {
-	m := MetaSpec{
-		MetaSpace:                    metaSpace,
-		SkipFetchNonexistentExternal: lastSuccessfulMetaRequest == nil,
-		MetaFile:                     metaFile,
-		JsonValue:                    jsonValue,
-	}
-	if lastSuccessfulMetaRequest != nil {
-		m.LastSuccessfulMetaRequest = *lastSuccessfulMetaRequest
-	}
-	result, err := m.Get(key)
-	if err != nil {
-		return err
-	}
-	_, err = io.WriteString(output, result)
-	return err
-}
-
 // indexOfFirstRightBracket gets index of right bracket("]"). e.g. the key is foo[10].bar[4], return 6
 func indexOfFirstRightBracket(key string) int {
 	return (rightBracketRegExp.FindStringIndex(key)[1] - 1)
