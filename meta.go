@@ -414,16 +414,6 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}, j
 	return key, value
 }
 
-// setupDir makes directory and json file for meta
-func setupDir(metaSpace string, metaFile string) error {
-	m := MetaSpec{
-		MetaSpace: metaSpace,
-		MetaFile:  metaFile,
-	}
-	_, err := m.SetupDir()
-	return err
-}
-
 // validateMetaKey validates the key of argument
 func validateMetaKey(key string) bool {
 	return metaKeyValidator.MatchString(key)
