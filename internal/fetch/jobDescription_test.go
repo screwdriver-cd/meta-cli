@@ -1,13 +1,19 @@
 package fetch
 
 import (
+	"github.com/stretchr/testify/suite"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func Test_parseJobDescription(t *testing.T) {
+type JobDescriptionSuite struct {
+	suite.Suite
+}
+
+func TestJobDescriptionSuite(t *testing.T) {
+	suite.Run(t, new(JobDescriptionSuite))
+}
+
+func (s *JobDescriptionSuite) Test_parseJobDescription() {
 	for _, tc := range []struct {
 		jobDescription    string
 		defaultPipelineID int64
@@ -33,19 +39,19 @@ func Test_parseJobDescription(t *testing.T) {
 			},
 		},
 	} {
-		t.Run(tc.jobDescription, func(t *testing.T) {
+		s.Run(tc.jobDescription, func() {
 			got, err := ParseJobDescription(tc.defaultPipelineID, tc.jobDescription)
 			if tc.wantErr {
-				require.Error(t, err, tc.jobDescription)
+				s.Require().Error(err, tc.jobDescription)
 				return
 			}
-			require.NoError(t, err, tc.jobDescription)
-			assert.Equal(t, tc.want, got, tc.jobDescription)
+			s.Require().NoError(err, tc.jobDescription)
+			s.Assert().Equal(tc.want, got, tc.jobDescription)
 		})
 	}
 }
 
-func TestJobDescription_External(t *testing.T) {
+func (s *JobDescriptionSuite) TestJobDescription_External() {
 	for _, tc := range []struct {
 		name           string
 		jobDescription JobDescription
@@ -58,14 +64,14 @@ func TestJobDescription_External(t *testing.T) {
 			},
 		},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
+		s.Run(tc.name, func() {
 			got := tc.jobDescription.External()
-			assert.Equal(t, tc.name, got)
+			s.Assert().Equal(tc.name, got)
 		})
 	}
 }
 
-func TestJobDescription_MetaKey(t *testing.T) {
+func (s *JobDescriptionSuite) TestJobDescription_MetaKey() {
 	for _, tc := range []struct {
 		name           string
 		jobDescription JobDescription
@@ -78,9 +84,9 @@ func TestJobDescription_MetaKey(t *testing.T) {
 			},
 		},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
+		s.Run(tc.name, func() {
 			got := tc.jobDescription.MetaKey()
-			assert.Equal(t, tc.name, got)
+			s.Assert().Equal(tc.name, got)
 		})
 	}
 }
