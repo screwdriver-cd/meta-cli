@@ -85,7 +85,10 @@ func (m *MetaSpec) GetExternalData() ([]byte, error) {
 	// Get from file or fetch lastSuccessfulMeta if possible, needed and store the result in the meta key
 	metaFilePath := m.MetaFilePath()
 	metaData, err := ioutil.ReadFile(metaFilePath)
-	if err != nil && os.IsNotExist(err) {
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
 		logrus.Debugf("%s doesn't exist; setting up", metaFilePath)
 		metaData, err = m.SetupDir()
 		if err != nil {
@@ -127,7 +130,10 @@ func (m *MetaSpec) GetFileData() ([]byte, error) {
 	metaFilePath := m.MetaFilePath()
 	logrus.Tracef("Reading file %v", metaFilePath)
 	data, err := ioutil.ReadFile(metaFilePath)
-	if err != nil && os.IsNotExist(err) {
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
 		return m.SetupDir()
 	}
 	return data, nil
@@ -177,8 +183,46 @@ func (m *MetaSpec) Get(key string) (string, error) {
 
 // Set sets metadata for the given key to the given value
 func (m *MetaSpec) Set(key string, value string) error {
-	// TODO(scr): Refactor this to be the main implementation.
-	return setMeta(key, value, m.MetaSpace, m.MetaFile, m.JsonValue)
+	if m.IsExternal() {
+		return errors.New("can only meta set current build meta")
+	}
+	metaFilePath := m.MetaFilePath()
+	var previousMeta map[string]interface{}
+
+	metaJSON, err := ioutil.ReadFile(metaFilePath)
+	// Not exist directory
+	if err != nil {
+		_, err := m.SetupDir()
+		if err != nil {
+			return err
+		}
+		// Initialize interface if first setting meta
+		previousMeta = make(map[string]interface{})
+	} else {
+		// Exist meta.json
+		if len(metaJSON) != 0 {
+			err = json.Unmarshal(metaJSON, &previousMeta)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Exist meta.json but it is empty
+			previousMeta = make(map[string]interface{})
+		}
+	}
+
+	key, parsedValue := setMetaValueRecursive(key, value, previousMeta, m.JsonValue)
+	previousMeta[key] = parsedValue
+
+	resultJSON, err := json.Marshal(previousMeta)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(metaFilePath, resultJSON, 0666)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // indexOfFirstRightBracket gets index of right bracket("]"). e.g. the key is foo[10].bar[4], return 6
@@ -268,52 +312,6 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	}
 
 	return key, result
-}
-
-// setMeta stores meta to file with key and value
-func setMeta(key string, value string, metaSpace string, metaFile string, jsonValue bool) error {
-	metaFilePath := metaSpace + "/" + metaFile + ".json"
-	var previousMeta map[string]interface{}
-
-	if metaFile != kDefaultMetaFile {
-		return errors.New("can only meta set current build meta")
-	}
-
-	_, err := os.Stat(metaFilePath)
-	// Not exist directory
-	if err != nil {
-		err = setupDir(metaSpace, metaFile)
-		if err != nil {
-			return err
-		}
-		// Initialize interface if first setting meta
-		previousMeta = make(map[string]interface{})
-	} else {
-		metaJSON, _ := ioutil.ReadFile(metaFilePath)
-		// Exist meta.json
-		if len(metaJSON) != 0 {
-			err = json.Unmarshal(metaJSON, &previousMeta)
-			if err != nil {
-				return err
-			}
-		} else {
-			// Exist meta.json but it is empty
-			previousMeta = make(map[string]interface{})
-		}
-	}
-
-	key, parsedValue := setMetaValueRecursive(key, value, previousMeta, jsonValue)
-	previousMeta[key] = parsedValue
-
-	resultJSON, err := json.Marshal(previousMeta)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(metaFilePath, resultJSON, 0666)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // setMetaValueRecursive updates meta

@@ -68,7 +68,7 @@ func (s *MetaSuite) TestExternalMetaFile() {
 	_ = os.Remove(externalFilePath)
 
 	// Test set (meta file is not meta.json, should fail)
-	err := setMeta("str", "val", testDir, externalFile, false)
+	err := s.MetaSpec.Set("str", "val")
 	Require := s.Require()
 	Require.Error(err, "error should be occured")
 
