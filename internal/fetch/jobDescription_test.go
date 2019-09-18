@@ -15,7 +15,7 @@ func TestJobDescriptionSuite(t *testing.T) {
 }
 
 func (s *JobDescriptionSuite) Test_parseJobDescription() {
-	for _, tc := range []struct {
+	tests := []struct {
 		jobDescription    string
 		defaultPipelineID int64
 		want              *JobDescription
@@ -39,21 +39,23 @@ func (s *JobDescriptionSuite) Test_parseJobDescription() {
 				JobName:    "myName",
 			},
 		},
-	} {
-		s.Run(tc.jobDescription, func() {
-			got, err := ParseJobDescription(tc.defaultPipelineID, tc.jobDescription)
-			if tc.wantErr {
-				s.Require().Error(err, tc.jobDescription)
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.jobDescription, func() {
+			got, err := ParseJobDescription(tt.defaultPipelineID, tt.jobDescription)
+			if tt.wantErr {
+				s.Require().Error(err, tt.jobDescription)
 				return
 			}
-			s.Require().NoError(err, tc.jobDescription)
-			s.Assert().Equal(tc.want, got, tc.jobDescription)
+			s.Require().NoError(err, tt.jobDescription)
+			s.Assert().Equal(tt.want, got, tt.jobDescription)
 		})
 	}
 }
 
 func (s *JobDescriptionSuite) TestJobDescription_External() {
-	for _, tc := range []struct {
+	tests := []struct {
 		name           string
 		jobDescription JobDescription
 	}{
@@ -64,16 +66,18 @@ func (s *JobDescriptionSuite) TestJobDescription_External() {
 				JobName:    "fooBar",
 			},
 		},
-	} {
-		s.Run(tc.name, func() {
-			got := tc.jobDescription.External()
-			s.Assert().Equal(tc.name, got)
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got := tt.jobDescription.External()
+			s.Assert().Equal(tt.name, got)
 		})
 	}
 }
 
 func (s *JobDescriptionSuite) TestJobDescription_MetaKey() {
-	for _, tc := range []struct {
+	tests := []struct {
 		name           string
 		jobDescription JobDescription
 	}{
@@ -84,10 +88,12 @@ func (s *JobDescriptionSuite) TestJobDescription_MetaKey() {
 				JobName:    "fooBar",
 			},
 		},
-	} {
-		s.Run(tc.name, func() {
-			got := tc.jobDescription.MetaKey()
-			s.Assert().Equal(tc.name, got)
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got := tt.jobDescription.MetaKey()
+			s.Assert().Equal(tt.name, got)
 		})
 	}
 }

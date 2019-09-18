@@ -47,7 +47,7 @@ func TestLastSuccessfulMetaSuite(t *testing.T) {
 }
 
 func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_LastSuccessfulMetaURL() {
-	for _, tc := range []struct {
+	tests := []struct {
 		name     string
 		request  LastSuccessfulMetaRequest
 		jobID    int64
@@ -60,16 +60,18 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_LastSuccessfulMe
 			jobID:    123,
 			expected: "https://api.screwdriver.ouroath.com/v4/jobs/123/lastSuccessfulMeta",
 		},
-	} {
-		s.Run(tc.name, func() {
-			got := tc.request.LastSuccessfulMetaURL(tc.jobID)
-			s.Assert().Equal(tc.expected, got)
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got := tt.request.LastSuccessfulMetaURL(tt.jobID)
+			s.Assert().Equal(tt.expected, got)
 		})
 	}
 }
 
 func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_JobIdFromJsonByName() {
-	for _, tc := range []struct {
+	tests := []struct {
 		name     string
 		request  LastSuccessfulMetaRequest
 		jobName  string
@@ -91,21 +93,23 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_JobIdFromJsonByN
 			jobName: "missing-job",
 			wantErr: true,
 		},
-	} {
-		s.Run(tc.name, func() {
-			got, err := tc.request.JobIdFromJsonByName(s.JobsJson, tc.jobName)
-			if tc.wantErr {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got, err := tt.request.JobIdFromJsonByName(s.JobsJson, tt.jobName)
+			if tt.wantErr {
 				s.Require().Error(err)
 				return
 			}
 			s.Require().NoError(err)
-			s.Assert().Equal(tc.expected, got)
+			s.Assert().Equal(tt.expected, got)
 		})
 	}
 }
 
 func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetOrFetchJobId() {
-	for _, tc := range []struct {
+	tests := []struct {
 		name           string
 		request        LastSuccessfulMetaRequest
 		jobDescription JobDescription
@@ -136,8 +140,10 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetOrFetchJobId(
 			},
 			wantErr: true,
 		},
-	} {
-		s.Run(tc.name, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
 			var mockHandler MockHandler
 			mockHandler.On("ServeHTTP", mock.Anything, mock.MatchedBy(func(req *http.Request) bool {
 				return req.URL.Path == "/v4/pipelines/1016708/jobs" &&
@@ -150,23 +156,23 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetOrFetchJobId(
 			testServer := httptest.NewServer(&mockHandler)
 			defer testServer.Close()
 
-			tc.request.SdApiUrl = testServer.URL + "/v4/"
-			tc.request.SdToken = "test-token"
-			tc.request.Transport = testServer.Client().Transport
-			got, err := tc.request.FetchJobId(&tc.jobDescription)
-			if tc.wantErr {
+			tt.request.SdApiUrl = testServer.URL + "/v4/"
+			tt.request.SdToken = "test-token"
+			tt.request.Transport = testServer.Client().Transport
+			got, err := tt.request.FetchJobId(&tt.jobDescription)
+			if tt.wantErr {
 				s.Require().Error(err)
 				return
 			}
 			s.Require().NoError(err)
-			s.Assert().Equal(tc.expected, got)
+			s.Assert().Equal(tt.expected, got)
 			mockHandler.AssertExpectations(s.T())
 		})
 	}
 }
 
 func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetLastSuccessfulMeta() {
-	for _, tc := range []struct {
+	tests := []struct {
 		name           string
 		request        LastSuccessfulMetaRequest
 		jobDescription JobDescription
@@ -181,8 +187,10 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetLastSuccessfu
 			},
 			expected: s.LastSuccessfulMetaJson,
 		},
-	} {
-		s.Run(tc.name, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
 			var mockHandler MockHandler
 			mockHandler.On("ServeHTTP", mock.Anything, mock.MatchedBy(func(req *http.Request) bool {
 				return req.URL.Path == "/v4/pipelines/1016708/jobs" &&
@@ -203,16 +211,16 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetLastSuccessfu
 			testServer := httptest.NewServer(&mockHandler)
 			defer testServer.Close()
 
-			tc.request.SdApiUrl = testServer.URL + "/v4/"
-			tc.request.SdToken = "test-token"
-			tc.request.Transport = testServer.Client().Transport
-			got, err := tc.request.FetchLastSuccessfulMeta(&tc.jobDescription)
-			if tc.wantErr {
+			tt.request.SdApiUrl = testServer.URL + "/v4/"
+			tt.request.SdToken = "test-token"
+			tt.request.Transport = testServer.Client().Transport
+			got, err := tt.request.FetchLastSuccessfulMeta(&tt.jobDescription)
+			if tt.wantErr {
 				s.Require().Error(err)
 				return
 			}
 			s.Require().NoError(err)
-			s.Assert().Equal(tc.expected, string(got))
+			s.Assert().Equal(tt.expected, string(got))
 			mockHandler.AssertExpectations(s.T())
 		})
 	}

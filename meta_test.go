@@ -117,7 +117,7 @@ func niceName(key, desc string) string {
 func (s *MetaSuite) TestGetMeta() {
 	s.Require().NoError(s.CopyMockFile(testFile))
 
-	for _, tt := range []struct {
+	tests := []struct {
 		key      string
 		desc     string
 		expected string
@@ -202,7 +202,9 @@ func (s *MetaSuite) TestGetMeta() {
 			desc:     `The key does not exist in meta.json`,
 			expected: `null`,
 		},
-	} {
+	}
+
+	for _, tt := range tests {
 		s.Run(niceName(tt.key, tt.desc), func() {
 			got, err := s.MetaSpec.Get(tt.key)
 			if tt.wantErr {
@@ -219,7 +221,7 @@ func (s *MetaSuite) TestGetMeta_json_object() {
 	s.MetaSpec.JsonValue = true
 	s.Require().NoError(s.CopyMockFile(testFile))
 
-	for _, tc := range []struct {
+	tests := []struct {
 		name     string
 		key      string
 		expected string
@@ -234,11 +236,13 @@ func (s *MetaSuite) TestGetMeta_json_object() {
 			key:      "foo",
 			expected: `{"bar-baz":"dashed-key"}`,
 		},
-	} {
-		s.Run(tc.name, func() {
-			got, err := s.MetaSpec.Get(tc.key)
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got, err := s.MetaSpec.Get(tt.key)
 			s.Require().NoError(err)
-			s.Assert().Equal(tc.expected, got)
+			s.Assert().Equal(tt.expected, got)
 		})
 	}
 }
@@ -248,7 +252,8 @@ func (s *MetaSuite) TestSetMeta() {
 		key   string
 		value string
 	}
-	for _, tc := range []struct {
+
+	tests := []struct {
 		name     string
 		sets     []set
 		expected string
@@ -297,16 +302,18 @@ func (s *MetaSuite) TestSetMeta() {
 			},
 			expected: `{"foo":"baz"}`,
 		},
-	} {
-		s.Run(tc.name, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
 			_ = os.RemoveAll(testDir)
 			Require := s.Require()
-			for _, set := range tc.sets {
+			for _, set := range tt.sets {
 				Require.NoError(s.MetaSpec.Set(set.key, set.value))
 			}
 			out, err := ioutil.ReadFile(testFilePath)
 			Require.NoError(err, "Meta file did not create")
-			s.Assert().Equal(tc.expected, string(out))
+			s.Assert().Equal(tt.expected, string(out))
 		})
 	}
 }
@@ -316,7 +323,8 @@ func (s *MetaSuite) TestSetMeta_sequential() {
 		value    string
 		expected string
 	}
-	for _, tc := range []struct {
+
+	tests := []struct {
 		name string
 		sets []set
 	}{
@@ -430,10 +438,12 @@ func (s *MetaSuite) TestSetMeta_sequential() {
 				},
 			},
 		},
-	} {
-		s.Run(tc.name, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
 			_ = os.RemoveAll(testDir)
-			for _, set := range tc.sets {
+			for _, set := range tt.sets {
 				s.Run(set.key, func() {
 					Require := s.Require()
 					Require.NoError(s.MetaSpec.Set(set.key, set.value))
@@ -449,7 +459,7 @@ func (s *MetaSuite) TestSetMeta_sequential() {
 func (s *MetaSuite) TestSetMeta_json_object() {
 	s.MetaSpec.JsonValue = true
 
-	for _, tc := range []struct {
+	tests := []struct {
 		name     string
 		key      string
 		value    string
@@ -480,26 +490,28 @@ func (s *MetaSuite) TestSetMeta_json_object() {
 			value:   `"mismatched": "json"}`,
 			wantErr: true,
 		},
-	} {
-		s.Run(tc.name, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
 			defer func() {
 				r := recover()
-				require.Equal(s.T(), tc.wantErr, r != nil, "wantErr %v; err %v", tc.wantErr, r)
+				require.Equal(s.T(), tt.wantErr, r != nil, "wantErr %v; err %v", tt.wantErr, r)
 			}()
 			_, err := s.MetaSpec.SetupDir()
 			Require := s.Require()
 			Require.NoError(err)
 			Require.NoError(os.Remove(testFilePath))
-			Require.NoError(s.MetaSpec.Set(tc.key, tc.value))
+			Require.NoError(s.MetaSpec.Set(tt.key, tt.value))
 			out, err := ioutil.ReadFile(testFilePath)
 			Require.NoError(err)
-			s.Assert().Equal(tc.expected, string(out))
+			s.Assert().Equal(tt.expected, string(out))
 		})
 	}
 }
 
 func (s *MetaSuite) TestValidateMetaKeyWithAccept() {
-	for _, tc := range []struct {
+	tests := []struct {
 		key string
 	}{
 		{`foo`},
@@ -525,16 +537,18 @@ func (s *MetaSuite) TestValidateMetaKeyWithAccept() {
 		{`foo[1].bar-baz[2]`},
 		{`f-o-o[1].bar--baz[2]`},
 		{`1.2.3`},
-	} {
-		s.Run(tc.key, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.key, func() {
 			Require := s.Require()
-			Require.True(validateMetaKey(tc.key), "'%v' is should be accepted", tc.key)
+			Require.True(validateMetaKey(tt.key), "'%v' is should be accepted", tt.key)
 		})
 	}
 }
 
 func (s *MetaSuite) TestValidateMetaKeyWithReject() {
-	for _, tc := range []struct {
+	tests := []struct {
 		key string
 	}{
 		{`foo[[`},
@@ -548,16 +562,18 @@ func (s *MetaSuite) TestValidateMetaKeyWithReject() {
 		{`foo-[]`},
 		{`foo.-bar`},
 		{`foo.bar-[]`},
-	} {
-		s.Run(tc.key, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.key, func() {
 			Require := s.Require()
-			Require.False(validateMetaKey(tc.key), "'%v' is should be rejected", tc.key)
+			Require.False(validateMetaKey(tt.key), "'%v' is should be rejected", tt.key)
 		})
 	}
 }
 
 func (s *MetaSuite) TestIndexOfFirstRightBracket() {
-	for _, tc := range []struct {
+	tests := []struct {
 		key      string
 		expected int
 	}{
@@ -569,15 +585,17 @@ func (s *MetaSuite) TestIndexOfFirstRightBracket() {
 			key:      "foo[10]",
 			expected: 6,
 		},
-	} {
-		s.Run(tc.key, func() {
-			s.Assert().Equal(tc.expected, indexOfFirstRightBracket(tc.key))
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.key, func() {
+			s.Assert().Equal(tt.expected, indexOfFirstRightBracket(tt.key))
 		})
 	}
 }
 
 func (s *MetaSuite) TestMetaIndexFromKey() {
-	for _, tc := range []struct {
+	tests := []struct {
 		key      string
 		expected int
 	}{
@@ -597,9 +615,11 @@ func (s *MetaSuite) TestMetaIndexFromKey() {
 			key:      "foo[]",
 			expected: 0,
 		},
-	} {
-		s.Run(tc.key, func() {
-			s.Assert().Equal(tc.expected, metaIndexFromKey(tc.key))
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.key, func() {
+			s.Assert().Equal(tt.expected, metaIndexFromKey(tt.key))
 		})
 	}
 }
@@ -609,7 +629,7 @@ func (s *MetaSuite) TestSymmetry_json_object() {
 	nonJsonMetaSpec.JsonValue = false
 	s.MetaSpec.JsonValue = true
 
-	for _, tc := range []struct {
+	tests := []struct {
 		name                   string
 		key                    string
 		expectJsonEqualNonJson bool
@@ -629,22 +649,24 @@ func (s *MetaSuite) TestSymmetry_json_object() {
 			key:                    "ary",
 			expectJsonEqualNonJson: true,
 		},
-	} {
-		s.Run(tc.name, func() {
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
 			Require := s.Require()
 			Require.NoError(s.CopyMockFile(testFile))
 
 			// Get the non-json value from mock
-			nonJsonValue, err := nonJsonMetaSpec.Get(tc.key)
+			nonJsonValue, err := nonJsonMetaSpec.Get(tt.key)
 			Require.NoError(err)
 
 			// Get the json value from mock
-			jsonValue, err := s.MetaSpec.Get(tc.key)
+			jsonValue, err := s.MetaSpec.Get(tt.key)
 			Require.NoError(err)
 
 			Assert := s.Assert()
 			// Compare starting condition
-			if tc.expectJsonEqualNonJson {
+			if tt.expectJsonEqualNonJson {
 				Assert.Equal(jsonValue, nonJsonValue)
 			} else {
 				Assert.NotEqual(jsonValue, nonJsonValue)
@@ -656,15 +678,15 @@ func (s *MetaSuite) TestSymmetry_json_object() {
 			Require.NoError(os.Remove(testFilePath))
 
 			// Set and get the jsonValue to/from writable file with jsonValue true
-			Require.NoError(s.MetaSpec.Set(tc.key, jsonValue))
-			newJsonValue, err := s.MetaSpec.Get(tc.key)
+			Require.NoError(s.MetaSpec.Set(tt.key, jsonValue))
+			newJsonValue, err := s.MetaSpec.Get(tt.key)
 			Assert.Equal(jsonValue, newJsonValue)
 		})
 	}
 }
 
 func (s *MetaSuite) TestMetaSpec_IsExternal() {
-	for _, tt := range []struct {
+	tests := []struct {
 		name     string
 		metaSpec MetaSpec
 		want     bool
@@ -690,7 +712,9 @@ func (s *MetaSuite) TestMetaSpec_IsExternal() {
 			},
 			want: true,
 		},
-	} {
+	}
+
+	for _, tt := range tests {
 		s.Run(tt.name, func() {
 			got := tt.metaSpec.IsExternal()
 			s.Assert().Equal(tt.want, got)
@@ -707,7 +731,7 @@ func (m *MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *MetaSuite) TestMetaSpec_GetExternalData() {
-	for _, tt := range []struct {
+	tests := []struct {
 		name     string
 		external string
 		expected string
@@ -723,7 +747,9 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 			external: "sd@123:missing",
 			wantErr:  true,
 		},
-	} {
+	}
+
+	for _, tt := range tests {
 		s.Run(tt.name, func() {
 			var mockHandler MockHandler
 			mockHandler.On("ServeHTTP", mock.Anything, mock.MatchedBy(func(req *http.Request) bool {
