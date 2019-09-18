@@ -40,11 +40,16 @@ var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 
 // MetaSpec encapsulates the parameters usually from CLI so they are more readable and shareable than positional params.
 type MetaSpec struct {
-	MetaSpace                    string
+	// The directory for metadata
+	MetaSpace string
+	// When true, do not fetch last successful external meta from external sources, which don't aren't local
 	SkipFetchNonexistentExternal bool
-	MetaFile                     string
-	JsonValue                    bool
-	LastSuccessfulMetaRequest    fetch.LastSuccessfulMetaRequest
+	// The base name of the meta file (without .json extension)
+	MetaFile string
+	// When true, treat values (for get and set) as json objects, otherwise set is string, get is value-dependent
+	JsonValue bool
+	// The object describing information required to fetch metadata from external sources
+	LastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
 }
 
 // MetaFilePath returns the absolute path to the meta file.
@@ -492,8 +497,9 @@ func main() {
 		Destination: &metaSpec.SkipFetchNonexistentExternal,
 	}
 	jsonValueFlag := cli.BoolFlag{
-		Name:        "json-value, j",
-		Usage:       "Treat value as json",
+		Name: "json-value, j",
+		Usage: "Treat value as json. When false, set values are treated as string; get is value-dependent" +
+			"and strings are not json-escaped",
 		Destination: &metaSpec.JsonValue,
 	}
 	sdTokenFlag := cli.StringFlag{
