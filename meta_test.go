@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"github.com/termie/go-shutil"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,195 +26,184 @@ const externalFile = "sd@123:component"
 const externalFilePath = testDir + "/" + externalFile + ".json"
 const doesNotExistFile = "woof"
 
-func TestMain(m *testing.M) {
-	// setup functions
-	setupDir(testDir, testFile)
-	// run test
-	retCode := m.Run()
-	// teardown functions
-	os.RemoveAll(testDir)
-	os.Exit(retCode)
+type MetaSuite struct {
+	suite.Suite
+	MetaSpec MetaSpec
 }
 
-func TestSetupDir(t *testing.T) {
+func TestMetaSuite(t *testing.T) {
+	suite.Run(t, new(MetaSuite))
+}
+
+func (s *MetaSuite) SetupTest() {
+	s.MetaSpec.MetaSpace = testDir
+	s.MetaSpec.MetaFile = testFile
+	_, _ = s.MetaSpec.SetupDir()
+}
+
+func (s *MetaSuite) TeardownTest() {
+	_ = os.RemoveAll(s.MetaSpec.MetaSpace)
+}
+
+func (s *MetaSuite) CopyMockFile(metaFile string) error {
+	metaFile = metaFile + ".json"
+	return shutil.CopyFile(filepath.Join(mockDir, metaFile), filepath.Join(testDir, metaFile), false)
+}
+
+func (s *MetaSuite) TestSetupDir() {
 	var err error
 	var data []byte
 
-	os.RemoveAll(testDir)
+	_ = os.RemoveAll(testDir)
+	_, _ = s.MetaSpec.SetupDir()
 
-	setupDir(testDir, testFile)
 	_, err = os.Stat(testFilePath)
-	if err != nil {
-		t.Errorf("could not create %s in %s", testFilePath, testDir)
-	}
+	Assert := s.Assert()
+	Assert.NoError(err, "could not create %s in %s", testFilePath, testDir)
 
 	data, err = ioutil.ReadFile(testFilePath)
-	if err != nil {
-		t.Errorf("could not read %s in %s", testFilePath, testDir)
-	}
-	if string(data[:]) != "{}" {
-		t.Errorf("%s does not have an empty JSON object: %v", testFilePath, string(data[:]))
-	}
+	Assert.NoError(err, "could not read %s in %s", testFilePath, testDir)
+	Assert.Equal("{}", string(data), "%s does not have an empty JSON object: %v", testFilePath, string(data))
 }
 
-func TestExternalMetaFile(t *testing.T) {
-	setupDir(testDir, externalFile)
-	os.Remove(externalFilePath)
+func (s *MetaSuite) TestExternalMetaFile() {
+	s.MetaSpec.MetaFile = externalFile
+	_, _ = s.MetaSpec.SetupDir()
+	_ = os.Remove(externalFilePath)
 
 	// Test set (meta file is not meta.json, should fail)
 	err := setMeta("str", "val", testDir, externalFile, false)
-	if err == nil {
-		t.Fatalf("error should be occured")
-	}
+	Require := s.Require()
+	Require.Error(err, "error should be occured")
 
 	// Test get
-	stdout := new(bytes.Buffer)
-	getMeta("str", mockDir, externalFile, stdout, false, nil)
-	expected := []byte("meow")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
+	Require.NoError(s.CopyMockFile(externalFile))
+
+	got, err := s.MetaSpec.Get("str")
+	Assert := s.Assert()
+	Assert.Equal("meow", got)
 }
 
-func TestGetMetaNoFile(t *testing.T) {
-	os.RemoveAll(testDir)
+func (s *MetaSuite) TestGetMetaNoFile() {
+	_ = os.RemoveAll(testDir)
+	_, _ = s.MetaSpec.SetupDir()
 
-	stdout := new(bytes.Buffer)
-	getMeta("woof", testDir, doesNotExistFile, stdout, false, nil)
-	expected := []byte("null")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
+	got, err := s.MetaSpec.Get("woof")
+	Assert := s.Assert()
+	Assert.NoError(err)
+	Assert.Equal("null", got)
 }
 
-func TestGetMeta(t *testing.T) {
-	stdout := new(bytes.Buffer)
-	getMeta("str", mockDir, testFile, stdout, false, nil)
-	expected := []byte("fuga")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+func niceName(key, desc string) string {
+	if desc == "" {
+		return key
 	}
+	return key + ":" + desc
+}
 
-	stdout = new(bytes.Buffer)
-	getMeta("bool", mockDir, testFile, stdout, false, nil)
-	expected = []byte("true")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
+func (s *MetaSuite) TestGetMeta() {
+	_ = os.RemoveAll(testDir)
+	_, _ = s.MetaSpec.SetupDir()
+	s.Require().NoError(s.CopyMockFile(testFile))
 
-	stdout = new(bytes.Buffer)
-	getMeta("int", mockDir, testFile, stdout, false, nil)
-	expected = []byte("1234567")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("float", mockDir, testFile, stdout, false, nil)
-	expected = []byte("1.5")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("foo.bar-baz", mockDir, testFile, stdout, false, nil)
-	expected = []byte("dashed-key")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("obj", mockDir, testFile, stdout, false, nil)
-	expected = []byte("{\"ccc\":\"ddd\",\"momo\":{\"toke\":\"toke\"}}")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("obj.ccc", mockDir, testFile, stdout, false, nil)
-	expected = []byte("ddd")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("obj.momo", mockDir, testFile, stdout, false, nil)
-	expected = []byte("{\"toke\":\"toke\"}")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("ary", mockDir, testFile, stdout, false, nil)
-	expected = []byte("[\"aaa\",\"bbb\",{\"ccc\":{\"ddd\":[1234567,2,3]}}]")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("ary[0]", mockDir, testFile, stdout, false, nil)
-	expected = []byte("aaa")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("ary[2]", mockDir, testFile, stdout, false, nil)
-	expected = []byte("{\"ccc\":{\"ddd\":[1234567,2,3]}}")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc", mockDir, testFile, stdout, false, nil)
-	expected = []byte("{\"ddd\":[1234567,2,3]}")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc.ddd", mockDir, testFile, stdout, false, nil)
-	expected = []byte("[1234567,2,3]")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("ary[2].ccc.ddd[1]", mockDir, testFile, stdout, false, nil)
-	expected = []byte("2")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	stdout = new(bytes.Buffer)
-	getMeta("nu", mockDir, testFile, stdout, false, nil)
-	expected = []byte("null")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	// The key does not exist in meta.json
-	stdout = new(bytes.Buffer)
-	getMeta("notexist", mockDir, testFile, stdout, false, nil)
-	expected = []byte("null")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	// It makes golang zero-value
-	stdout = new(bytes.Buffer)
-	getMeta("ary[]", mockDir, testFile, stdout, false, nil)
-	expected = []byte("aaa")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
-	}
-
-	// The key does not exist in meta.json
-	stdout = new(bytes.Buffer)
-	getMeta("ary.aaa.bbb.ccc.ddd[10]", mockDir, testFile, stdout, false, nil)
-	expected = []byte("null")
-	if bytes.Compare(expected, stdout.Bytes()) != 0 {
-		t.Fatalf("not matched. expected '%v', actual '%v'", string(expected), string(stdout.Bytes()))
+	for _, tt := range []struct {
+		key      string
+		desc     string
+		expected string
+		wantErr  bool
+	}{
+		{
+			key:      `str`,
+			expected: `fuga`,
+		},
+		{
+			key:      `bool`,
+			expected: `true`,
+		},
+		{
+			key:      `int`,
+			expected: `1234567`,
+		},
+		{
+			key:      `float`,
+			expected: `1.5`,
+		},
+		{
+			key:      `foo.bar-baz`,
+			expected: `dashed-key`,
+		},
+		{
+			key:      `obj`,
+			expected: `{"ccc":"ddd","momo":{"toke":"toke"}}`,
+		},
+		{
+			key:      `obj.ccc`,
+			expected: `ddd`,
+		},
+		{
+			key:      `obj.momo`,
+			expected: `{"toke":"toke"}`,
+		},
+		{
+			key:      `ary`,
+			expected: `["aaa","bbb",{"ccc":{"ddd":[1234567,2,3]}}]`,
+		},
+		{
+			key:      `ary[0]`,
+			expected: `aaa`,
+		},
+		{
+			key:      `ary[2]`,
+			expected: `{"ccc":{"ddd":[1234567,2,3]}}`,
+		},
+		{
+			key:      `ary[2].ccc`,
+			expected: `{"ddd":[1234567,2,3]}`,
+		},
+		{
+			key:      `ary[2].ccc.ddd`,
+			expected: `[1234567,2,3]`,
+		},
+		{
+			key:      `ary[2].ccc.ddd[1]`,
+			expected: `2`,
+		},
+		{
+			key:      `nu`,
+			expected: `null`,
+		},
+		{
+			key:      `nu`,
+			expected: `null`,
+		},
+		{
+			key:      `notexist`,
+			desc:     `The key does not exist in meta.json`,
+			expected: `null`,
+		},
+		{
+			key:      `ary[]`,
+			desc:     `It makes golang zero-value`,
+			expected: `aaa`,
+		},
+		{
+			key:      `ary.aaa.bbb.ccc.ddd[10]`,
+			desc:     `The key does not exist in meta.json`,
+			expected: `null`,
+		},
+	} {
+		s.Run(niceName(tt.key, tt.desc), func() {
+			s.T().Parallel()
+			Require := s.Require()
+			got, err := s.MetaSpec.Get(tt.key)
+			if tt.wantErr {
+				Require.Error(err)
+				return
+			}
+			Require.NoError(err)
+			Assert := s.Assert()
+			Assert.Equal(tt.expected, got)
+		})
 	}
 }
 
