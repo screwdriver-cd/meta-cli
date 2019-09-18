@@ -2,7 +2,12 @@ package main
 
 import (
 	"bytes"
+	"github.com/screwdriver-cd/meta-cli/internal/fetch"
+	"github.com/stretchr/testify/mock"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -907,6 +912,293 @@ func TestMetaSpec_IsExternal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.metaSpec.IsExternal()
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+const (
+	jobsJson = `
+[
+  {
+    "id": 392545,
+    "name": "competing-meta-join",
+    "permutations": [
+      {
+        "annotations": {},
+        "commands": [
+          {
+            "name": "nop",
+            "command": "meta get meta"
+          },
+          {
+            "name": "teardown-gather-meta",
+            "command": "cp -r \"$(dirname \"$SD_META_PATH\")\" \"${SD_ARTIFACTS_DIR}/\""
+          }
+        ],
+        "environment": {
+          "SD_TEMPLATE_FULLNAME": "sieve/nop",
+          "SD_TEMPLATE_NAME": "nop",
+          "SD_TEMPLATE_NAMESPACE": "sieve",
+          "SD_TEMPLATE_VERSION": "1.0.0"
+        },
+        "image": "docker.ouroath.com:4443/astracloud/no-op-base:latest",
+        "secrets": [],
+        "settings": {},
+        "requires": [
+          "competing-meta-1",
+          "competing-meta-2"
+        ]
+      }
+    ],
+    "pipelineId": 1016709,
+    "state": "ENABLED",
+    "archived": false
+  },
+  {
+    "id": 392544,
+    "name": "competing-meta-2",
+    "permutations": [
+      {
+        "annotations": {},
+        "commands": [
+          {
+            "name": "nop",
+            "command": "meta set meta.foo bar\nmeta set meta.competing-meta-2 abc\n"
+          },
+          {
+            "name": "teardown-gather-meta",
+            "command": "cp -r \"$(dirname \"$SD_META_PATH\")\" \"${SD_ARTIFACTS_DIR}/\""
+          }
+        ],
+        "environment": {
+          "SD_TEMPLATE_FULLNAME": "sieve/nop",
+          "SD_TEMPLATE_NAME": "nop",
+          "SD_TEMPLATE_NAMESPACE": "sieve",
+          "SD_TEMPLATE_VERSION": "1.0.0"
+        },
+        "image": "docker.ouroath.com:4443/astracloud/no-op-base:latest",
+        "secrets": [],
+        "settings": {},
+        "requires": [
+          "~pr",
+          "~commit"
+        ]
+      }
+    ],
+    "pipelineId": 1016709,
+    "state": "ENABLED",
+    "archived": false
+  },
+  {
+    "id": 392543,
+    "name": "competing-meta-1",
+    "permutations": [
+      {
+        "annotations": {},
+        "commands": [
+          {
+            "name": "nop",
+            "command": "meta set meta.foo bar\nmeta set meta.competing-meta-1 abc\n"
+          },
+          {
+            "name": "teardown-gather-meta",
+            "command": "cp -r \"$(dirname \"$SD_META_PATH\")\" \"${SD_ARTIFACTS_DIR}/\""
+          }
+        ],
+        "environment": {
+          "SD_TEMPLATE_FULLNAME": "sieve/nop",
+          "SD_TEMPLATE_NAME": "nop",
+          "SD_TEMPLATE_NAMESPACE": "sieve",
+          "SD_TEMPLATE_VERSION": "1.0.0"
+        },
+        "image": "docker.ouroath.com:4443/astracloud/no-op-base:latest",
+        "secrets": [],
+        "settings": {},
+        "requires": [
+          "~pr",
+          "~commit"
+        ]
+      }
+    ],
+    "pipelineId": 1016709,
+    "state": "ENABLED",
+    "archived": false
+  },
+  {
+    "id": 392535,
+    "name": "see-if-external-propagates",
+    "permutations": [
+      {
+        "annotations": {},
+        "commands": [
+          {
+            "name": "nop",
+            "command": "meta set meta.foo bar"
+          },
+          {
+            "name": "teardown-gather-meta",
+            "command": "cp -r \"$(dirname \"$SD_META_PATH\")\" \"${SD_ARTIFACTS_DIR}/\""
+          }
+        ],
+        "environment": {
+          "SD_TEMPLATE_FULLNAME": "sieve/nop",
+          "SD_TEMPLATE_NAME": "nop",
+          "SD_TEMPLATE_NAMESPACE": "sieve",
+          "SD_TEMPLATE_VERSION": "1.0.0"
+        },
+        "image": "docker.ouroath.com:4443/astracloud/no-op-base:latest",
+        "secrets": [],
+        "settings": {},
+        "requires": [
+          "~fetch-from-pipeline1"
+        ]
+      }
+    ],
+    "pipelineId": 1016709,
+    "state": "ENABLED",
+    "archived": false
+  },
+  {
+    "id": 392534,
+    "name": "fetch-from-pipeline1",
+    "permutations": [
+      {
+        "annotations": {},
+        "commands": [
+          {
+            "name": "nop",
+            "command": "curl -fs https://api.screwdriver.ouroath.com/v4/jobs/392524/lastSuccessfulMeta -H \"Authorization: Bearer ${SD_TOKEN}\" -o \"$(dirname \"$SD_META_PATH\")/sd@1016708:job1.json\"\nmeta get --external sd@1016708:job1 meta\n"
+          },
+          {
+            "name": "teardown-gather-meta",
+            "command": "cp -r \"$(dirname \"$SD_META_PATH\")\" \"${SD_ARTIFACTS_DIR}/\""
+          }
+        ],
+        "environment": {
+          "SD_TEMPLATE_FULLNAME": "sieve/nop",
+          "SD_TEMPLATE_NAME": "nop",
+          "SD_TEMPLATE_NAMESPACE": "sieve",
+          "SD_TEMPLATE_VERSION": "1.0.0"
+        },
+        "image": "docker.ouroath.com:4443/astracloud/no-op-base:latest",
+        "secrets": [],
+        "settings": {},
+        "requires": [
+          "~pr",
+          "~commit"
+        ]
+      }
+    ],
+    "pipelineId": 1016709,
+    "state": "ENABLED",
+    "archived": false
+  },
+  {
+    "id": 392525,
+    "name": "job1",
+    "permutations": [
+      {
+        "annotations": {},
+        "commands": [
+          {
+            "name": "nop",
+            "command": "meta set meta.foo bar"
+          },
+          {
+            "name": "teardown-gather-meta",
+            "command": "cp -r \"$(dirname \"$SD_META_PATH\")\" \"${SD_ARTIFACTS_DIR}/\""
+          }
+        ],
+        "environment": {
+          "SD_TEMPLATE_FULLNAME": "sieve/nop",
+          "SD_TEMPLATE_NAME": "nop",
+          "SD_TEMPLATE_NAMESPACE": "sieve",
+          "SD_TEMPLATE_VERSION": "1.0.0"
+        },
+        "image": "docker.ouroath.com:4443/astracloud/no-op-base:latest",
+        "secrets": [],
+        "settings": {},
+        "requires": [
+          "~pr",
+          "~commit"
+        ]
+      }
+    ],
+    "pipelineId": 1016709,
+    "state": "ENABLED",
+    "archived": false
+  }
+]
+`
+	metaJson = `{"foo","bar","arr":[1,2,3]}`
+)
+
+type MockHandler struct {
+	mock.Mock
+}
+
+func (m *MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	m.Called(w, r)
+}
+
+func TestMetaSpec_GetExternalData(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		external string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "sd@1016708:job1",
+			external: "sd@1016708:job1",
+			expected: metaJson,
+		},
+		{
+			name:     "sd@123:missing",
+			external: "sd@123:missing",
+			wantErr:  true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var mockHandler MockHandler
+			mockHandler.On("ServeHTTP", mock.Anything, mock.MatchedBy(func(req *http.Request) bool {
+				return req.URL.Path == "/v4/pipelines/1016708/jobs"
+			})).
+				Once().
+				Run(func(args mock.Arguments) {
+					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), jobsJson)
+				})
+			mockHandler.On("ServeHTTP", mock.Anything, mock.MatchedBy(func(req *http.Request) bool {
+				return req.URL.Path == "/v4/jobs/392525/lastSuccessfulMeta"
+			})).
+				Once().
+				Run(func(args mock.Arguments) {
+					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), metaJson)
+				})
+			testServer := httptest.NewServer(&mockHandler)
+			defer testServer.Close()
+
+			tempDir, err := ioutil.TempDir("", "test")
+			require.NoError(t, err)
+			defer func() { _ = os.RemoveAll(tempDir) }()
+
+			metaSpec := MetaSpec{
+				MetaFile:  tt.external,
+				MetaSpace: tempDir,
+				LastSuccessfulMetaRequest: fetch.LastSuccessfulMetaRequest{
+					SdApiUrl:  testServer.URL + "/v4/",
+					Transport: testServer.Client().Transport,
+				},
+			}
+
+			got, err := metaSpec.GetExternalData()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, string(got))
+			mockHandler.AssertExpectations(t)
 		})
 	}
 }
