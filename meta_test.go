@@ -875,3 +875,38 @@ func TestSymmetry_json_object(t *testing.T) {
 		})
 	}
 }
+
+func TestMetaSpec_IsExternal(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		metaSpec MetaSpec
+		want     bool
+	}{
+		{
+			name: "meta",
+			metaSpec: MetaSpec{
+				MetaFile: "meta",
+			},
+			want: false,
+		},
+		{
+			name: "sd@123:component",
+			metaSpec: MetaSpec{
+				MetaFile: "sd@123:component",
+			},
+			want: true,
+		},
+		{
+			name: "component",
+			metaSpec: MetaSpec{
+				MetaFile: "component",
+			},
+			want: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.metaSpec.IsExternal()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
