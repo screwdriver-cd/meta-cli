@@ -3,12 +3,19 @@ package fetch
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func Test_parseJobDescription(t *testing.T) {
-	for _, tc := range []struct {
+type JobDescriptionSuite struct {
+	suite.Suite
+}
+
+func TestJobDescriptionSuite(t *testing.T) {
+	suite.Run(t, new(JobDescriptionSuite))
+}
+
+func (s *JobDescriptionSuite) Test_parseJobDescription() {
+	tests := []struct {
 		jobDescription    string
 		defaultPipelineID int64
 		want              *JobDescription
@@ -32,15 +39,61 @@ func Test_parseJobDescription(t *testing.T) {
 				JobName:    "myName",
 			},
 		},
-	} {
-		t.Run(tc.jobDescription, func(t *testing.T) {
-			got, err := ParseJobDescription(tc.defaultPipelineID, tc.jobDescription)
-			if tc.wantErr {
-				require.Error(t, err, tc.jobDescription)
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.jobDescription, func() {
+			got, err := ParseJobDescription(tt.defaultPipelineID, tt.jobDescription)
+			if tt.wantErr {
+				s.Require().Error(err, tt.jobDescription)
 				return
 			}
-			require.NoError(t, err, tc.jobDescription)
-			assert.Equal(t, tc.want, got, tc.jobDescription)
+			s.Require().NoError(err, tt.jobDescription)
+			s.Assert().Equal(tt.want, got, tt.jobDescription)
+		})
+	}
+}
+
+func (s *JobDescriptionSuite) TestJobDescription_External() {
+	tests := []struct {
+		name           string
+		jobDescription JobDescription
+	}{
+		{
+			name: "sd@123:fooBar",
+			jobDescription: JobDescription{
+				PipelineID: 123,
+				JobName:    "fooBar",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got := tt.jobDescription.External()
+			s.Assert().Equal(tt.name, got)
+		})
+	}
+}
+
+func (s *JobDescriptionSuite) TestJobDescription_MetaKey() {
+	tests := []struct {
+		name           string
+		jobDescription JobDescription
+	}{
+		{
+			name: "sd.123.fooBar",
+			jobDescription: JobDescription{
+				PipelineID: 123,
+				JobName:    "fooBar",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got := tt.jobDescription.MetaKey()
+			s.Assert().Equal(tt.name, got)
 		})
 	}
 }

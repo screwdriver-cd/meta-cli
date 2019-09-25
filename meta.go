@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime/debug"
@@ -21,6 +22,11 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
+const (
+	defaultMetaFile  = "meta"
+	defaultMetaSpace = "/sd/meta"
+)
+
 // These variables get set by the build script via the LDFLAGS
 // Detail about these variables are here: https://goreleaser.com/#builds
 var (
@@ -29,51 +35,128 @@ var (
 	date    = "unknown"
 )
 
-var mkdirAll = os.MkdirAll
-var stat = os.Stat
-var writeFile = ioutil.WriteFile
-var readFile = ioutil.ReadFile
-var fprintf = fmt.Fprintf
-
 var metaKeyValidator = regexp.MustCompile(`^(\w+(-*\w+)*)+(((\[\]|\[(0|[1-9]\d*)\]))?(\.(\w+(-*\w+)*)+)*)*$`)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 
-// getMeta prints meta value from file based on key
-func getMeta(key string, metaSpace string, metaFile string, output io.Writer, jsonValue bool, lastSuccessfulMetaRequest *fetch.LastSuccessfulMetaRequest) error {
-	metaFilePath := metaSpace + "/" + metaFile + ".json"
+// MetaSpec encapsulates the parameters usually from CLI so they are more readable and shareable than positional params.
+type MetaSpec struct {
+	// The directory for metadata
+	MetaSpace string
+	// When true, do not fetch last successful external meta from external sources, which don't aren't local
+	SkipFetchNonexistentExternal bool
+	// The base name of the meta file (without .json extension)
+	MetaFile string
+	// When true, treat values (for get and set) as json objects, otherwise set is string, get is value-dependent
+	JSONValue bool
+	// The object describing information required to fetch metadata from external sources
+	LastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
+}
 
-	_, err := stat(metaFilePath)
-	// Setup directory if it does not exist
+// MetaFilePath returns the absolute path to the meta file.
+func (m *MetaSpec) MetaFilePath() string {
+	return filepath.Join(m.MetaSpace, m.MetaFile+".json")
+}
+
+// IsExternal determines whether the meta is the default or externally provided.
+func (m *MetaSpec) IsExternal() bool {
+	return m.MetaFile != defaultMetaFile
+}
+
+// CloneDefaultMeta returns a copy of |m| with the default meta.
+func (m *MetaSpec) CloneDefaultMeta() *MetaSpec {
+	ret := *m
+	ret.MetaFile = defaultMetaFile
+	return &ret
+}
+
+// GetExternalData gets external data from meta key, external file, or fetching from lastSuccessfulMeta
+func (m *MetaSpec) GetExternalData() ([]byte, error) {
+	// Get the job description of the external job for looking up or fetching
+	jobDescription, err := fetch.ParseJobDescription(m.LastSuccessfulMetaRequest.DefaultSdPipelineId, m.MetaFile)
 	if err != nil {
-		logrus.Debugf("Err statting %v: %v", metaFilePath, err)
-		err = setupDir(metaSpace, metaFile)
-		if err != nil {
-			return err
+		return nil, err
+	}
+	logrus.Tracef("jobDescription: %#v", jobDescription)
+
+	// First try looking up in the the local (default) external meta key
+	defaultMetaSpec := m.CloneDefaultMeta()
+	externalMetaKey := jobDescription.MetaKey()
+	externalMeta, err := defaultMetaSpec.Get(externalMetaKey)
+	if err == nil && externalMeta != "null" {
+		logrus.Debugf("Found data in external meta key %s", externalMetaKey)
+		return []byte(externalMeta), nil
+	}
+
+	// Get from file or fetch lastSuccessfulMeta if possible, needed and store the result in the meta key
+	metaFilePath := m.MetaFilePath()
+	metaData, err := ioutil.ReadFile(metaFilePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
 		}
-		if lastSuccessfulMetaRequest == nil || metaFile == "meta" {
-			logrus.Tracef("lastSuccessfulMetaRequest=%#v, metaFile=%v", lastSuccessfulMetaRequest, metaFile)
-			_, err = io.WriteString(output, "null")
-			return err
-		}
-		jobDescription, err := fetch.ParseJobDescription(lastSuccessfulMetaRequest.DefaultSdPipelineId, metaFile)
+		logrus.Debugf("%s doesn't exist; setting up", metaFilePath)
+		metaData, err = m.SetupDir()
 		if err != nil {
-			return err
+			return nil, err
 		}
-		data, err := lastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription)
-		if err != nil {
-			return err
-		}
-		logrus.Tracef("Writing fetched metadata to %s", metaFilePath)
-		err = writeFile(metaFilePath, data, 0666)
-		if err != nil {
-			return err
+		// Fetch if we should
+		if !m.SkipFetchNonexistentExternal {
+			logrus.Debugf("Fetching metadata from %s", jobDescription.External())
+			if metaData, err = m.LastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	logrus.Tracef("Reading file %v", metaFilePath)
-	metaJSON, err := readFile(metaFilePath)
+	// Store the result in the external meta key
+	err = defaultMetaSpec.Set(externalMetaKey, string(metaData))
 	if err != nil {
-		return err
+		return nil, err
+	}
+	return metaData, nil
+}
+
+// SetupDir creates the metaspace directory and writes a file with empty object.
+func (m *MetaSpec) SetupDir() ([]byte, error) {
+	err := os.MkdirAll(m.MetaSpace, 0777)
+	if err != nil {
+		return nil, err
+	}
+	data := []byte("{}")
+	err = ioutil.WriteFile(m.MetaFilePath(), data, 0666)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// GetFileData gets the data from file, setting up file with empty json object if empty.
+func (m *MetaSpec) GetFileData() ([]byte, error) {
+	metaFilePath := m.MetaFilePath()
+	logrus.Tracef("Reading file %v", metaFilePath)
+	data, err := ioutil.ReadFile(metaFilePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		return m.SetupDir()
+	}
+	return data, nil
+}
+
+// GetData gets either external or default meta data
+func (m *MetaSpec) GetData() ([]byte, error) {
+	if m.IsExternal() {
+		return m.GetExternalData()
+	}
+	return m.GetFileData()
+}
+
+// Get gets metadata for the given key
+func (m *MetaSpec) Get(key string) (string, error) {
+	metaJSON, err := m.GetData()
+	if err != nil {
+		return "", err
 	}
 
 	var metaInterface map[string]interface{}
@@ -82,7 +165,7 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer, js
 	decoder.UseNumber()
 	err = decoder.Decode(&metaInterface)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	_, result := fetchMetaValue(key, metaInterface)
@@ -90,19 +173,63 @@ func getMeta(key string, metaSpace string, metaFile string, output io.Writer, js
 	switch result.(type) {
 	case map[string]interface{}, []interface{}:
 		resultJSON, _ := json.Marshal(result)
-		_, err = fprintf(output, "%v", string(resultJSON))
+		return fmt.Sprintf("%v", string(resultJSON)), nil
 	case nil:
-		_, err = fprintf(output, "null")
+		return "null", nil
 	default:
-		if jsonValue {
+		if m.JSONValue {
 			resultJSON, _ := json.Marshal(result)
-			_, err = fprintf(output, "%v", string(resultJSON))
+			return fmt.Sprintf("%v", string(resultJSON)), nil
+		}
+		return fmt.Sprintf("%v", result), nil
+	}
+}
+
+// Set sets metadata for the given key to the given value
+func (m *MetaSpec) Set(key string, value string) error {
+	if m.IsExternal() {
+		return errors.New("can only meta set current build meta")
+	}
+	metaFilePath := m.MetaFilePath()
+	var previousMeta map[string]interface{}
+
+	metaJSON, err := ioutil.ReadFile(metaFilePath)
+	// Not exist directory
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		_, err := m.SetupDir()
+		if err != nil {
+			return err
+		}
+		// Initialize interface if first setting meta
+		previousMeta = make(map[string]interface{})
+	} else {
+		// Exist meta.json
+		if len(metaJSON) != 0 {
+			err = json.Unmarshal(metaJSON, &previousMeta)
+			if err != nil {
+				return err
+			}
 		} else {
-			_, err = fprintf(output, "%v", result)
+			// Exist meta.json but it is empty
+			previousMeta = make(map[string]interface{})
 		}
 	}
 
-	return err
+	key, parsedValue := setMetaValueRecursive(key, value, previousMeta, m.JSONValue)
+	previousMeta[key] = parsedValue
+
+	resultJSON, err := json.Marshal(previousMeta)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(metaFilePath, resultJSON, 0666)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // indexOfFirstRightBracket gets index of right bracket("]"). e.g. the key is foo[10].bar[4], return 6
@@ -192,52 +319,6 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	}
 
 	return key, result
-}
-
-// setMeta stores meta to file with key and value
-func setMeta(key string, value string, metaSpace string, metaFile string, jsonValue bool) error {
-	metaFilePath := metaSpace + "/" + metaFile + ".json"
-	var previousMeta map[string]interface{}
-
-	if metaFile != "meta" {
-		return errors.New("can only meta set current build meta")
-	}
-
-	_, err := stat(metaFilePath)
-	// Not exist directory
-	if err != nil {
-		err = setupDir(metaSpace, metaFile)
-		if err != nil {
-			return err
-		}
-		// Initialize interface if first setting meta
-		previousMeta = make(map[string]interface{})
-	} else {
-		metaJSON, _ := readFile(metaFilePath)
-		// Exist meta.json
-		if len(metaJSON) != 0 {
-			err = json.Unmarshal(metaJSON, &previousMeta)
-			if err != nil {
-				return err
-			}
-		} else {
-			// Exist meta.json but it is empty
-			previousMeta = make(map[string]interface{})
-		}
-	}
-
-	key, parsedValue := setMetaValueRecursive(key, value, previousMeta, jsonValue)
-	previousMeta[key] = parsedValue
-
-	resultJSON, err := json.Marshal(previousMeta)
-	if err != nil {
-		return err
-	}
-	err = writeFile(metaFilePath, resultJSON, 0666)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // setMetaValueRecursive updates meta
@@ -333,19 +414,6 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}, j
 	return key, value
 }
 
-// setupDir makes directory and json file for meta
-func setupDir(metaSpace string, metaFile string) error {
-	err := mkdirAll(metaSpace, 0777)
-	if err != nil {
-		return err
-	}
-	err = writeFile(metaSpace+"/"+metaFile+".json", []byte("{}"), 0666)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // validateMetaKey validates the key of argument
 func validateMetaKey(key string) bool {
 	return metaKeyValidator.MatchString(key)
@@ -379,11 +447,12 @@ func main() {
 	defer finalRecover()
 
 	// Set to defaults in case not all commands alter these variables with flags.
-	var metaSpace string = "/sd/meta"
-	var metaFile string = "meta"
-	var skipFetchNonexistentExternal = false
-	var jsonValue bool = false
-	var lastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
+	metaSpec := MetaSpec{
+		MetaSpace:                    defaultMetaSpace,
+		SkipFetchNonexistentExternal: false,
+		MetaFile:                     defaultMetaFile,
+		JSONValue:                    false,
+	}
 	var loglevel string = logrus.GetLevel().String()
 
 	app := cli.NewApp()
@@ -403,42 +472,43 @@ func main() {
 		Name:        "meta-space",
 		Usage:       "Location of meta temporarily",
 		Value:       "/sd/meta",
-		Destination: &metaSpace,
+		Destination: &metaSpec.MetaSpace,
 	}
 	externalFlag := cli.StringFlag{
 		Name:        "external, e",
 		Usage:       "MetaFile pipeline meta",
-		Value:       "meta",
-		Destination: &metaFile,
+		Value:       defaultMetaFile,
+		Destination: &metaSpec.MetaFile,
 	}
 	fetchNonexistentExternalFlag := cli.BoolFlag{
 		Name:        "skip-fetch, F",
 		Usage:       `Used with --external to skip fetching from lastSuccessfulMeta when not triggered by external job`,
-		Destination: &skipFetchNonexistentExternal,
+		Destination: &metaSpec.SkipFetchNonexistentExternal,
 	}
 	jsonValueFlag := cli.BoolFlag{
-		Name:        "json-value, j",
-		Usage:       "Treat value as json",
-		Destination: &jsonValue,
+		Name: "json-value, j",
+		Usage: "Treat value as json. When false, set values are treated as string; get is value-dependent" +
+			"and strings are not json-escaped",
+		Destination: &metaSpec.JSONValue,
 	}
 	sdTokenFlag := cli.StringFlag{
 		Name:        "sd-token, t",
 		Usage:       "Set the SD_TOKEN to use in SD API calls",
 		EnvVar:      "SD_TOKEN",
-		Destination: &lastSuccessfulMetaRequest.SdToken,
+		Destination: &metaSpec.LastSuccessfulMetaRequest.SdToken,
 	}
-	sdApiUrlFlag := cli.StringFlag{
+	sdAPIURLFlag := cli.StringFlag{
 		Name:        "sd-api-url, u",
 		Usage:       "Set the SD_API_URL to use in SD API calls",
 		EnvVar:      "SD_API_URL",
 		Value:       "https://api.screwdriver.cd/v4/",
-		Destination: &lastSuccessfulMetaRequest.SdApiUrl,
+		Destination: &metaSpec.LastSuccessfulMetaRequest.SdApiUrl,
 	}
-	sdPipelineIdFlag := cli.Int64Flag{
+	sdPipelineIDFlag := cli.Int64Flag{
 		Name:        "sd-pipeline-id, p",
 		Usage:       "Set the SD_PIPELINE_ID of the job for fetching last successful meta",
 		EnvVar:      "SD_PIPELINE_ID",
-		Destination: &lastSuccessfulMetaRequest.DefaultSdPipelineId,
+		Destination: &metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineId,
 	}
 	sdLoglevelFlag := cli.StringFlag{
 		Name:        "loglevel, l",
@@ -469,18 +539,19 @@ func main() {
 				if valid := validateMetaKey(key); !valid {
 					failureExit(errors.New("meta key validation error"))
 				}
-				fetchNonexistentRequest := &lastSuccessfulMetaRequest
-				if skipFetchNonexistentExternal {
-					fetchNonexistentRequest = nil
+				value, err := metaSpec.Get(key)
+				if err != nil {
+					failureExit(err)
 				}
-				if err := getMeta(key, metaSpace, metaFile, os.Stdout, jsonValue, fetchNonexistentRequest); err != nil {
+				_, err = io.WriteString(os.Stdout, value)
+				if err != nil {
 					failureExit(err)
 				}
 				successExit()
 				return nil
 			},
 			Flags: []cli.Flag{
-				externalFlag, fetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdApiUrlFlag, sdPipelineIdFlag,
+				externalFlag, fetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdAPIURLFlag, sdPipelineIDFlag,
 			},
 		},
 		{
@@ -495,7 +566,7 @@ func main() {
 				if valid := validateMetaKey(key); !valid {
 					failureExit(errors.New("meta key validation error"))
 				}
-				err := setMeta(key, val, metaSpace, metaFile, jsonValue)
+				err := metaSpec.Set(key, val)
 				if err != nil {
 					failureExit(err)
 				}
