@@ -532,7 +532,7 @@ func main() {
 			Name:  "get",
 			Usage: "Get a metadata with key",
 			Action: func(c *cli.Context) error {
-				if len(c.Args()) != 1 {
+				if c.NArg() != 1 {
 					logrus.Error("meta get expects exactly one argument (key)")
 					return cli.ShowCommandHelp(c, "get")
 				}
@@ -559,7 +559,7 @@ func main() {
 			Name:  "set",
 			Usage: "Set a metadata with key and value",
 			Action: func(c *cli.Context) error {
-				if len(c.Args()) != 2 {
+				if c.NArg() != 2 {
 					logrus.Error("meta set expects exactly two arguments (key, value)")
 					return cli.ShowCommandHelp(c, "set")
 				}
