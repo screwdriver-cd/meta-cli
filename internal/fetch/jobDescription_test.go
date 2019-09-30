@@ -31,6 +31,15 @@ func (s *JobDescriptionSuite) Test_parseJobDescription() {
 			},
 		},
 		{
+			jobDescription:    `sd@123:myName-with-dashes`,
+			defaultPipelineID: 999,
+			want: &JobDescription{
+				MetaFile:   `sd@123:myName-with-dashes`,
+				PipelineID: 123,
+				JobName:    "myName-with-dashes",
+			},
+		},
+		{
 			jobDescription:    `myName`,
 			defaultPipelineID: 123,
 			want: &JobDescription{
