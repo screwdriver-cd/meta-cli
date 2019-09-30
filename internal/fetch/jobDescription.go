@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-var jobDescriptionSDRegExp = regexp.MustCompile(`^sd@(\d+):(\w+)$`)
+var jobDescriptionSDRegExp = regexp.MustCompile(`^sd@(\d+):([\w-]+)$`)
 
 type JobDescription struct {
 	// The base name of the meta file (without the .json extension)
