@@ -798,6 +798,7 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 			s.Assert().FileExists(metaSpec.MetaFilePath())
 			defaultMeta := metaSpec.CloneDefaultMeta()
 			sdVal, err := defaultMeta.Get("sd")
+			s.Assert().NoError(err)
 			s.Assert().NotEqual("null", sdVal, "sd should have cached values but was %s", sdVal)
 		})
 	}
@@ -819,6 +820,6 @@ func (s *MetaSuite) TestMetaSpec_SkipFetchDoesntSave() {
 
 	defaultMeta := metaSpec.CloneDefaultMeta()
 	sdVal, err := defaultMeta.Get("sd")
-	s.Require().NoError(err, `Should be able to get missing "sd" key without err`);
+	s.Require().NoError(err, `Should be able to get missing "sd" key without err`)
 	s.Assert().Equal("null", sdVal, "sd should not have any cached values, but had %s", sdVal)
 }

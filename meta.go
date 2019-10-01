@@ -100,7 +100,7 @@ func (m *MetaSpec) GetExternalData() ([]byte, error) {
 			return []byte("{}"), nil
 		}
 		logrus.Debugf("%s doesn't exist; setting up", metaFilePath)
-		metaData, err = m.SetupDir()
+		_, err = m.SetupDir()
 		if err != nil {
 			return nil, err
 		}
