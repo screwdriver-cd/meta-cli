@@ -796,3 +796,23 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 		})
 	}
 }
+
+func (s *MetaSuite) TestMetaSpec_SkipFetchDoesntSave() {
+	metaSpec := MetaSpec{
+		MetaFile:                     "sd@1016708:job1",
+		MetaSpace:                    testDir,
+		SkipFetchNonexistentExternal: true,
+	}
+	got, err := metaSpec.GetExternalData()
+	s.Require().NoError(err)
+	s.Assert().Equal("{}", string(got))
+	_, err = os.Stat(metaSpec.MetaFilePath())
+	s.Assert().Error(err, "File not expected to exist %s", metaSpec.MetaFilePath())
+	s.Assert().True(os.IsNotExist(err),
+		"File not expected to exist %s; err %v", metaSpec.MetaFilePath(), err)
+
+	defaultMeta := metaSpec.CloneDefaultMeta()
+	sdVal, err := defaultMeta.Get("sd")
+	s.Require().NoError(err, `Should be able to get missing "sd" key without err`);
+	s.Assert().Equal("null", sdVal, "sd should not have any cached values, but had %s", sdVal)
+}
