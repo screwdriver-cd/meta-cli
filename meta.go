@@ -542,6 +542,9 @@ func main() {
 				if valid := validateMetaKey(key); !valid {
 					failureExit(errors.New("meta key validation error"))
 				}
+				if _, err := fetch.ParseJobDescription(metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineId, metaSpec.MetaFile); metaSpec.IsExternal() && err != nil {
+					failureExit(err)
+				}
 				value, err := metaSpec.Get(key)
 				if err != nil {
 					failureExit(err)

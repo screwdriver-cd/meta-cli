@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var jobDescriptionSDRegExp = regexp.MustCompile(`^sd@(\d+):([\w-]+)$`)
@@ -19,6 +20,9 @@ type JobDescription struct {
 
 // ParseJobDescription parses the string of the form sd@123:jobName or jobName to create a new JobDescription object
 func ParseJobDescription(defaultPipelineID int64, external string) (*JobDescription, error) {
+	if strings.HasPrefix(external, "-") {
+		return nil, fmt.Errorf(`--external "%s" appears to be a flag; not an external description`, external)
+	}
 	ret := &JobDescription{
 		MetaFile:   external,
 		PipelineID: defaultPipelineID,
