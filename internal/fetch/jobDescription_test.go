@@ -48,6 +48,11 @@ func (s *JobDescriptionSuite) Test_parseJobDescription() {
 				JobName:    "myName",
 			},
 		},
+		{
+			jobDescription:    `--skip-fetch`,
+			defaultPipelineID: 123,
+			wantErr:           true,
+		},
 	}
 
 	for _, tt := range tests {
