@@ -793,6 +793,33 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 			Require.NoError(err)
 			s.Assert().Equal(tt.expected, string(got))
 			mockHandler.AssertExpectations(s.T())
+
+			// Ensure that the caching behavior works too
+			s.Assert().FileExists(metaSpec.MetaFilePath())
+			defaultMeta := metaSpec.CloneDefaultMeta()
+			sdVal, err := defaultMeta.Get("sd")
+			s.Assert().NoError(err)
+			s.Assert().NotEqual("null", sdVal, "sd should have cached values but was %s", sdVal)
 		})
 	}
+}
+
+func (s *MetaSuite) TestMetaSpec_SkipFetchDoesntSave() {
+	metaSpec := MetaSpec{
+		MetaFile:                     "sd@1016708:job1",
+		MetaSpace:                    testDir,
+		SkipFetchNonexistentExternal: true,
+	}
+	got, err := metaSpec.GetExternalData()
+	s.Require().NoError(err)
+	s.Assert().Equal("{}", string(got))
+	_, err = os.Stat(metaSpec.MetaFilePath())
+	s.Assert().Error(err, "File not expected to exist %s", metaSpec.MetaFilePath())
+	s.Assert().True(os.IsNotExist(err),
+		"File not expected to exist %s; err %v", metaSpec.MetaFilePath(), err)
+
+	defaultMeta := metaSpec.CloneDefaultMeta()
+	sdVal, err := defaultMeta.Get("sd")
+	s.Require().NoError(err, `Should be able to get missing "sd" key without err`)
+	s.Assert().Equal("null", sdVal, "sd should not have any cached values, but had %s", sdVal)
 }
