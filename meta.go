@@ -94,17 +94,19 @@ func (m *MetaSpec) GetExternalData() ([]byte, error) {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
+		// If we shouldn't fetch, then return without caching in the default meta.
+		if m.SkipFetchNonexistentExternal {
+			logrus.Debugf("%s doesn't exist; skipping fetch", metaFilePath)
+			return []byte("{}"), nil
+		}
 		logrus.Debugf("%s doesn't exist; setting up", metaFilePath)
 		metaData, err = m.SetupDir()
 		if err != nil {
 			return nil, err
 		}
-		// Fetch if we should
-		if !m.SkipFetchNonexistentExternal {
-			logrus.Debugf("Fetching metadata from %s", jobDescription.External())
-			if metaData, err = m.LastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription); err != nil {
-				return nil, err
-			}
+		logrus.Debugf("Fetching metadata from %s", jobDescription.External())
+		if metaData, err = m.LastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription); err != nil {
+			return nil, err
 		}
 	}
 
