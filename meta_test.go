@@ -793,6 +793,12 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 			Require.NoError(err)
 			s.Assert().Equal(tt.expected, string(got))
 			mockHandler.AssertExpectations(s.T())
+
+			// Ensure that the caching behavior works too
+			s.Assert().FileExists(metaSpec.MetaFilePath())
+			defaultMeta := metaSpec.CloneDefaultMeta()
+			sdVal, err := defaultMeta.Get("sd")
+			s.Assert().NotEqual("null", sdVal, "sd should have cached values but was %s", sdVal)
 		})
 	}
 }
