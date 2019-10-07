@@ -73,7 +73,7 @@ func (m *MetaSpec) CloneDefaultMeta() *MetaSpec {
 // GetExternalData gets external data from meta key, external file, or fetching from lastSuccessfulMeta
 func (m *MetaSpec) GetExternalData() ([]byte, error) {
 	// Get the job description of the external job for looking up or fetching
-	jobDescription, err := fetch.ParseJobDescription(m.LastSuccessfulMetaRequest.DefaultSdPipelineId, m.MetaFile)
+	jobDescription, err := fetch.ParseJobDescription(m.LastSuccessfulMetaRequest.DefaultSdPipelineID, m.MetaFile)
 	if err != nil {
 		return nil, err
 	}
@@ -506,13 +506,13 @@ func main() {
 		Usage:       "Set the SD_API_URL to use in SD API calls",
 		EnvVar:      "SD_API_URL",
 		Value:       "https://api.screwdriver.cd/v4/",
-		Destination: &metaSpec.LastSuccessfulMetaRequest.SdApiUrl,
+		Destination: &metaSpec.LastSuccessfulMetaRequest.SdAPIURL,
 	}
 	sdPipelineIDFlag := cli.Int64Flag{
 		Name:        "sd-pipeline-id, p",
 		Usage:       "Set the SD_PIPELINE_ID of the job for fetching last successful meta",
 		EnvVar:      "SD_PIPELINE_ID",
-		Destination: &metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineId,
+		Destination: &metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineID,
 	}
 	sdLoglevelFlag := cli.StringFlag{
 		Name:        "loglevel, l",
@@ -556,7 +556,7 @@ func main() {
 				if valid := validateMetaKey(key); !valid {
 					failureExit(errors.New("meta key validation error"))
 				}
-				if _, err := fetch.ParseJobDescription(metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineId, metaSpec.MetaFile); metaSpec.IsExternal() && err != nil {
+				if _, err := fetch.ParseJobDescription(metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineID, metaSpec.MetaFile); metaSpec.IsExternal() && err != nil {
 					failureExit(err)
 				}
 				value, err := metaSpec.Get(key)

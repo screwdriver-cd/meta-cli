@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	mockHttpDir            = "../../mockHttp"
-	jobsJsonFile           = "jobs.json"
+	mockHTTPDir            = "../../mockHttp"
+	jobsJSONFile           = "jobs.json"
 	lastSuccessfulMetaFile = "lastSuccessfulMeta.json"
 )
 
@@ -28,18 +28,18 @@ func (m *MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type LastSuccessfulMetaSuite struct {
 	suite.Suite
-	JobsJson               string
-	LastSuccessfulMetaJson string
+	JobsJSON               string
+	LastSuccessfulMetaJSON string
 }
 
 func (s *LastSuccessfulMetaSuite) SetupSuite() {
-	data, err := ioutil.ReadFile(filepath.Join(mockHttpDir, jobsJsonFile))
+	data, err := ioutil.ReadFile(filepath.Join(mockHTTPDir, jobsJSONFile))
 	s.Require().NoError(err)
-	s.JobsJson = string(data)
+	s.JobsJSON = string(data)
 
-	data, err = ioutil.ReadFile(filepath.Join(mockHttpDir, lastSuccessfulMetaFile))
+	data, err = ioutil.ReadFile(filepath.Join(mockHTTPDir, lastSuccessfulMetaFile))
 	s.Require().NoError(err)
-	s.LastSuccessfulMetaJson = string(data)
+	s.LastSuccessfulMetaJSON = string(data)
 }
 
 func TestLastSuccessfulMetaSuite(t *testing.T) {
@@ -55,7 +55,7 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_LastSuccessfulMe
 	}{
 		{
 			request: LastSuccessfulMetaRequest{
-				SdApiUrl: "https://api.screwdriver.ouroath.com/v4/",
+				SdAPIURL: "https://api.screwdriver.ouroath.com/v4/",
 			},
 			jobID:    123,
 			expected: "https://api.screwdriver.ouroath.com/v4/jobs/123/lastSuccessfulMeta",
@@ -97,7 +97,7 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_JobIdFromJsonByN
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			got, err := tt.request.JobIdFromJsonByName(s.JobsJson, tt.jobName)
+			got, err := tt.request.JobIDFromJSONByName(s.JobsJSON, tt.jobName)
 			if tt.wantErr {
 				s.Require().Error(err)
 				return
@@ -151,15 +151,15 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetOrFetchJobId(
 			})).
 				Once().
 				Run(func(args mock.Arguments) {
-					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.JobsJson)
+					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.JobsJSON)
 				})
 			testServer := httptest.NewServer(&mockHandler)
 			defer testServer.Close()
 
-			tt.request.SdApiUrl = testServer.URL + "/v4/"
+			tt.request.SdAPIURL = testServer.URL + "/v4/"
 			tt.request.SdToken = "test-token"
 			tt.request.Transport = testServer.Client().Transport
-			got, err := tt.request.FetchJobId(&tt.jobDescription)
+			got, err := tt.request.FetchJobID(&tt.jobDescription)
 			if tt.wantErr {
 				s.Require().Error(err)
 				return
@@ -185,7 +185,7 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetLastSuccessfu
 				PipelineID: 1016708,
 				JobName:    "job1",
 			},
-			expected: s.LastSuccessfulMetaJson,
+			expected: s.LastSuccessfulMetaJSON,
 		},
 	}
 
@@ -198,7 +198,7 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetLastSuccessfu
 			})).
 				Once().
 				Run(func(args mock.Arguments) {
-					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.JobsJson)
+					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.JobsJSON)
 				})
 			mockHandler.On("ServeHTTP", mock.Anything, mock.MatchedBy(func(req *http.Request) bool {
 				return req.URL.Path == "/v4/jobs/392525/lastSuccessfulMeta" &&
@@ -206,12 +206,12 @@ func (s *LastSuccessfulMetaSuite) TestLastSuccessfulMetaRequest_GetLastSuccessfu
 			})).
 				Once().
 				Run(func(args mock.Arguments) {
-					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.LastSuccessfulMetaJson)
+					_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.LastSuccessfulMetaJSON)
 				})
 			testServer := httptest.NewServer(&mockHandler)
 			defer testServer.Close()
 
-			tt.request.SdApiUrl = testServer.URL + "/v4/"
+			tt.request.SdAPIURL = testServer.URL + "/v4/"
 			tt.request.SdToken = "test-token"
 			tt.request.Transport = testServer.Client().Transport
 			got, err := tt.request.FetchLastSuccessfulMeta(&tt.jobDescription)

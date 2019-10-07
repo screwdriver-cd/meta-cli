@@ -9,6 +9,7 @@ import (
 
 var jobDescriptionSDRegExp = regexp.MustCompile(`^sd@(\d+):([\w-]+)$`)
 
+// JobDescription describes a screwdriver job.
 type JobDescription struct {
 	// The base name of the meta file (without the .json extension)
 	MetaFile string
