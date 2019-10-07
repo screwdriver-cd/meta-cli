@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofrs/flock"
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
 	"github.com/sirupsen/logrus"
 
@@ -455,7 +456,8 @@ func main() {
 		MetaFile:                     defaultMetaFile,
 		JSONValue:                    false,
 	}
-	var loglevel string = logrus.GetLevel().String()
+	loglevel := logrus.GetLevel().String()
+	var lockfile string
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
@@ -518,8 +520,14 @@ func main() {
 		Value:       logrus.GetLevel().String(),
 		Destination: &loglevel,
 	}
+	sdLockfileFlag := cli.StringFlag{
+		Name:        "lockfile",
+		Usage:       "Set the lockfile location",
+		Value:       "/var/run/meta.lock",
+		Destination: &lockfile,
+	}
 
-	app.Flags = []cli.Flag{metaSpaceFlag, sdLoglevelFlag}
+	app.Flags = []cli.Flag{metaSpaceFlag, sdLoglevelFlag, sdLockfileFlag}
 	app.Before = func(context *cli.Context) error {
 		level, err := logrus.ParseLevel(loglevel)
 		if err != nil {
@@ -534,6 +542,12 @@ func main() {
 			Name:  "get",
 			Usage: "Get a metadata with key",
 			Action: func(c *cli.Context) error {
+				flocker := flock.New(lockfile)
+				if err := flocker.RLock(); err != nil {
+					failureExit(err)
+				}
+				defer func() { _ = flocker.Unlock() }()
+
 				if c.NArg() != 1 {
 					logrus.Error("meta get expects exactly one argument (key)")
 					return cli.ShowCommandHelp(c, "get")
@@ -564,6 +578,12 @@ func main() {
 			Name:  "set",
 			Usage: "Set a metadata with key and value",
 			Action: func(c *cli.Context) error {
+				flocker := flock.New(lockfile)
+				if err := flocker.Lock(); err != nil {
+					failureExit(err)
+				}
+				defer func() { _ = flocker.Unlock() }()
+
 				if c.NArg() != 2 {
 					logrus.Error("meta set expects exactly two arguments (key, value)")
 					return cli.ShowCommandHelp(c, "set")
