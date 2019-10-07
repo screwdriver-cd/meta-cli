@@ -542,8 +542,9 @@ func main() {
 			Name:  "get",
 			Usage: "Get a metadata with key",
 			Action: func(c *cli.Context) error {
+				// Ensure that the CLI is concurrency safe. Get may write if fetching lastSuccessful; lock exclusively.
 				flocker := flock.New(lockfile)
-				if err := flocker.RLock(); err != nil {
+				if err := flocker.Lock(); err != nil {
 					failureExit(err)
 				}
 				defer func() { _ = flocker.Unlock() }()
@@ -578,6 +579,7 @@ func main() {
 			Name:  "set",
 			Usage: "Set a metadata with key and value",
 			Action: func(c *cli.Context) error {
+				// Ensure that the CLI is concurrency safe.
 				flocker := flock.New(lockfile)
 				if err := flocker.Lock(); err != nil {
 					failureExit(err)
