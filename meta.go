@@ -457,7 +457,6 @@ func main() {
 		JSONValue:                    false,
 	}
 	loglevel := logrus.GetLevel().String()
-	var lockfile string
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
@@ -520,14 +519,8 @@ func main() {
 		Value:       logrus.GetLevel().String(),
 		Destination: &loglevel,
 	}
-	sdLockfileFlag := cli.StringFlag{
-		Name:        "lockfile",
-		Usage:       "Set the lockfile location",
-		Value:       "/var/run/meta.lock",
-		Destination: &lockfile,
-	}
 
-	app.Flags = []cli.Flag{metaSpaceFlag, sdLoglevelFlag, sdLockfileFlag}
+	app.Flags = []cli.Flag{metaSpaceFlag, sdLoglevelFlag}
 	app.Before = func(context *cli.Context) error {
 		level, err := logrus.ParseLevel(loglevel)
 		if err != nil {
@@ -543,7 +536,7 @@ func main() {
 			Usage: "Get a metadata with key",
 			Action: func(c *cli.Context) error {
 				// Ensure that the CLI is concurrency safe. Get may write if fetching lastSuccessful; lock exclusively.
-				flocker := flock.New(lockfile)
+				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
 				if err := flocker.Lock(); err != nil {
 					failureExit(err)
 				}
@@ -580,7 +573,7 @@ func main() {
 			Usage: "Set a metadata with key and value",
 			Action: func(c *cli.Context) error {
 				// Ensure that the CLI is concurrency safe.
-				flocker := flock.New(lockfile)
+				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
 				if err := flocker.Lock(); err != nil {
 					failureExit(err)
 				}
