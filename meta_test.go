@@ -23,6 +23,8 @@ const (
 	mockDir                = "./mock"
 	externalFile           = "sd@123:component"
 	externalFilePath       = testDir + "/" + externalFile + ".json"
+	externalFile2          = "sd@123:has-sd"
+	externalFile2Path      = testDir + "/" + externalFile2 + ".json"
 	doesNotExistFile       = "woof"
 	mockHTTPDir            = "mockHttp"
 	jobsJSONFile           = "jobs.json"
@@ -98,6 +100,16 @@ func (s *MetaSuite) TestExternalMetaFile() {
 	Require.NoError(err)
 	Assert := s.Assert()
 	Assert.Equal("meow", got)
+}
+
+func (s *MetaSuite) TestExternalMetaFileDeletesSd() {
+	s.MetaSpec.MetaFile = externalFile2
+	s.Require().NoError(s.CopyMockFile(externalFile2))
+
+	// Test set (meta file is not meta.json, should fail)
+	got, err := s.MetaSpec.Get("sd")
+	s.Require().NoError(err)
+	s.Assert().Equal("null", got)
 }
 
 func (s *MetaSuite) TestGetMetaNoFile() {
