@@ -512,7 +512,7 @@ func main() {
 	}
 	jsonValueFlag := cli.BoolFlag{
 		Name: "json-value, j",
-		Usage: "Treat value as json. When false, set values are treated as string; get is value-dependent" +
+		Usage: "Treat value as json. When false, set values are treated as string; get is value-dependent " +
 			"and strings are not json-escaped",
 		Destination: &metaSpec.JSONValue,
 	}
