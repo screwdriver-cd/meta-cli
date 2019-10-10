@@ -48,6 +48,8 @@ type MetaSpec struct {
 	MetaFile string
 	// When true, treat values (for get and set) as json objects, otherwise set is string, get is value-dependent
 	JSONValue bool
+	// When true, don't save external metadata in the sd key of the local meta.
+	SkipStoreExternal bool
 	// The object describing information required to fetch metadata from external sources
 	LastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
 }
@@ -110,10 +112,20 @@ func (m *MetaSpec) GetExternalData() ([]byte, error) {
 		}
 	}
 
-	// Store the result in the external meta key
-	err = defaultMetaSpec.Set(externalMetaKey, string(metaData))
-	if err != nil {
+	// Delete the sd from the external meta
+	var unmarshaledMetaData map[string]interface{}
+	if err = json.Unmarshal(metaData, &unmarshaledMetaData); err != nil {
 		return nil, err
+	}
+	delete(unmarshaledMetaData, "sd")
+
+	// Store the result in the external meta key in json format unless skipping.
+	if !m.SkipStoreExternal {
+		defaultMetaSpec.JSONValue = true
+		err = defaultMetaSpec.Set(externalMetaKey, string(metaData))
+		if err != nil {
+			return nil, err
+		}
 	}
 	return metaData, nil
 }
@@ -482,10 +494,15 @@ func main() {
 		Value:       defaultMetaFile,
 		Destination: &metaSpec.MetaFile,
 	}
-	fetchNonexistentExternalFlag := cli.BoolFlag{
+	skipFetchNonexistentExternalFlag := cli.BoolFlag{
 		Name:        "skip-fetch, F",
 		Usage:       `Used with --external to skip fetching from lastSuccessfulMeta when not triggered by external job`,
 		Destination: &metaSpec.SkipFetchNonexistentExternal,
+	}
+	skipStoreExternalFlag := cli.BoolFlag{
+		Name:        "skip-store",
+		Usage:       `Used with --external to skip storing external metadata in the local meta`,
+		Destination: &metaSpec.SkipStoreExternal,
 	}
 	jsonValueFlag := cli.BoolFlag{
 		Name: "json-value, j",
@@ -557,7 +574,8 @@ func main() {
 				return nil
 			},
 			Flags: []cli.Flag{
-				externalFlag, fetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdAPIURLFlag, sdPipelineIDFlag,
+				externalFlag, skipFetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdAPIURLFlag,
+				sdPipelineIDFlag, skipStoreExternalFlag,
 			},
 		},
 		{
