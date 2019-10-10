@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofrs/flock"
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
 	"github.com/sirupsen/logrus"
 
@@ -72,7 +73,7 @@ func (m *MetaSpec) CloneDefaultMeta() *MetaSpec {
 // GetExternalData gets external data from meta key, external file, or fetching from lastSuccessfulMeta
 func (m *MetaSpec) GetExternalData() ([]byte, error) {
 	// Get the job description of the external job for looking up or fetching
-	jobDescription, err := fetch.ParseJobDescription(m.LastSuccessfulMetaRequest.DefaultSdPipelineId, m.MetaFile)
+	jobDescription, err := fetch.ParseJobDescription(m.LastSuccessfulMetaRequest.DefaultSdPipelineID, m.MetaFile)
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +456,7 @@ func main() {
 		MetaFile:                     defaultMetaFile,
 		JSONValue:                    false,
 	}
-	var loglevel string = logrus.GetLevel().String()
+	loglevel := logrus.GetLevel().String()
 
 	app := cli.NewApp()
 	app.Name = "meta-cli"
@@ -504,13 +505,13 @@ func main() {
 		Usage:       "Set the SD_API_URL to use in SD API calls",
 		EnvVar:      "SD_API_URL",
 		Value:       "https://api.screwdriver.cd/v4/",
-		Destination: &metaSpec.LastSuccessfulMetaRequest.SdApiUrl,
+		Destination: &metaSpec.LastSuccessfulMetaRequest.SdAPIURL,
 	}
 	sdPipelineIDFlag := cli.Int64Flag{
 		Name:        "sd-pipeline-id, p",
 		Usage:       "Set the SD_PIPELINE_ID of the job for fetching last successful meta",
 		EnvVar:      "SD_PIPELINE_ID",
-		Destination: &metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineId,
+		Destination: &metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineID,
 	}
 	sdLoglevelFlag := cli.StringFlag{
 		Name:        "loglevel, l",
@@ -534,6 +535,13 @@ func main() {
 			Name:  "get",
 			Usage: "Get a metadata with key",
 			Action: func(c *cli.Context) error {
+				// Ensure that the CLI is concurrency safe. Get may write if fetching lastSuccessful; lock exclusively.
+				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
+				if err := flocker.Lock(); err != nil {
+					failureExit(err)
+				}
+				defer func() { _ = flocker.Unlock() }()
+
 				if c.NArg() != 1 {
 					logrus.Error("meta get expects exactly one argument (key)")
 					return cli.ShowCommandHelp(c, "get")
@@ -542,7 +550,7 @@ func main() {
 				if valid := validateMetaKey(key); !valid {
 					failureExit(errors.New("meta key validation error"))
 				}
-				if _, err := fetch.ParseJobDescription(metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineId, metaSpec.MetaFile); metaSpec.IsExternal() && err != nil {
+				if _, err := fetch.ParseJobDescription(metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineID, metaSpec.MetaFile); metaSpec.IsExternal() && err != nil {
 					failureExit(err)
 				}
 				value, err := metaSpec.Get(key)
@@ -564,6 +572,13 @@ func main() {
 			Name:  "set",
 			Usage: "Set a metadata with key and value",
 			Action: func(c *cli.Context) error {
+				// Ensure that the CLI is concurrency safe.
+				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
+				if err := flocker.Lock(); err != nil {
+					failureExit(err)
+				}
+				defer func() { _ = flocker.Unlock() }()
+
 				if c.NArg() != 2 {
 					logrus.Error("meta set expects exactly two arguments (key, value)")
 					return cli.ShowCommandHelp(c, "set")

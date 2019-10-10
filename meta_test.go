@@ -780,7 +780,7 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 				MetaFile:  tt.external,
 				MetaSpace: tempDir,
 				LastSuccessfulMetaRequest: fetch.LastSuccessfulMetaRequest{
-					SdApiUrl:  testServer.URL + "/v4/",
+					SdAPIURL:  testServer.URL + "/v4/",
 					Transport: testServer.Client().Transport,
 				},
 			}
