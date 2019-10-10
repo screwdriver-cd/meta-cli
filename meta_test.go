@@ -112,6 +112,18 @@ func (s *MetaSuite) TestExternalMetaFileDeletesSd() {
 	s.Assert().Equal("null", got)
 }
 
+func (s *MetaSuite) TestExternalMetaDoesntCreateFile() {
+	s.MetaSpec.MetaFile = externalFile2
+	s.MetaSpec.SkipFetchNonexistentExternal = true
+
+	// Test set (meta file is not meta.json, should fail)
+	got, err := s.MetaSpec.Get("sd")
+	s.Require().NoError(err)
+	s.Assert().Equal("null", got)
+	_, err = os.Stat(externalFile2Path)
+	s.Assert().True(os.IsNotExist(err), "%s should not exist", externalFile2Path)
+}
+
 func (s *MetaSuite) TestGetMetaNoFile() {
 	_ = os.RemoveAll(testDir)
 	got, err := s.MetaSpec.Get("woof")
