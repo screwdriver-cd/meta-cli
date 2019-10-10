@@ -114,7 +114,7 @@ func (m *MetaSpec) GetExternalData() ([]byte, error) {
 
 	// Delete the sd from the external meta
 	logrus.Tracef("Deleting sd key from incoming metadata %s", string(metaData))
-	var unmarshaledMetaData map[string]interface{}
+	var unmarshaledMetaData map[string]json.RawMessage
 	if err = json.Unmarshal(metaData, &unmarshaledMetaData); err != nil {
 		return nil, err
 	}
