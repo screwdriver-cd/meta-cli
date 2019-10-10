@@ -834,7 +834,8 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 			mockHandler.AssertExpectations(s.T())
 
 			// Ensure that the caching behavior works too
-			s.Assert().FileExists(metaSpec.MetaFilePath())
+			_, err = os.Stat(metaSpec.MetaFilePath())
+			s.Assert().True(os.IsNotExist(err), "%s should not exist", metaSpec.MetaFilePath())
 			defaultMeta := metaSpec.CloneDefaultMeta()
 			sdVal, err := defaultMeta.Get("sd")
 			s.Assert().NoError(err)
