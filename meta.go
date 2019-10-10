@@ -113,14 +113,19 @@ func (m *MetaSpec) GetExternalData() ([]byte, error) {
 	}
 
 	// Delete the sd from the external meta
+	logrus.Trace("Deleting sd key from incoming metadata %s", string(metaData))
 	var unmarshaledMetaData map[string]interface{}
 	if err = json.Unmarshal(metaData, &unmarshaledMetaData); err != nil {
 		return nil, err
 	}
 	delete(unmarshaledMetaData, "sd")
+	if metaData, err = json.Marshal(unmarshaledMetaData); err != nil {
+		return nil, err
+	}
 
 	// Store the result in the external meta key in json format unless skipping.
 	if !m.SkipStoreExternal {
+		logrus.Trace("storing metadata %s in key %s", string(metaData), externalMetaKey)
 		defaultMetaSpec.JSONValue = true
 		err = defaultMetaSpec.Set(externalMetaKey, string(metaData))
 		if err != nil {
