@@ -53,6 +53,8 @@ type MetaSpec struct {
 	SkipStoreExternal bool
 	// The object describing information required to fetch metadata from external sources
 	LastSuccessfulMetaRequest fetch.LastSuccessfulMetaRequest
+	// When true, cache external data locally.
+	CacheLocal bool
 }
 
 // MetaFilePath returns the absolute path to the meta file.
@@ -172,8 +174,43 @@ func (m *MetaSpec) GetData() ([]byte, error) {
 	return m.GetFileData()
 }
 
+// CachedGet tries local first, then external and store external result locally.
+func (m *MetaSpec) CachedGet(key string) (string, error) {
+	// First try the local meta without caching
+	logrus.Debugf("Checking local meta for key %s", key)
+	localClone := m.CloneDefaultMeta()
+	localClone.CacheLocal = false
+	s, err := localClone.Get(key)
+	if err != nil {
+		return "", err
+	}
+	if s != "null" {
+		logrus.Debugf("Found local meta for key %s: %s", key, s)
+		return s, nil
+	}
+
+	// If not in local meta, then fetch normally, also without caching, re-enabling cache after invocation.
+	logrus.Debugf("Reading external meta for key %s", key)
+	m.CacheLocal = false
+	defer func() { m.CacheLocal = true }()
+	if s, err = m.Get(key); err != nil {
+		return "", err
+	}
+
+	// Now store the meta locally to cache it and return result.
+	logrus.Debugf("Storing local meta for key %s: %s", key, s)
+	if err = localClone.Set(key, s); err != nil {
+		return "", err
+	}
+	return s, nil
+}
+
 // Get gets metadata for the given key
 func (m *MetaSpec) Get(key string) (string, error) {
+	if m.CacheLocal && m.IsExternal() {
+		return m.CachedGet(key)
+	}
+
 	metaJSON, err := m.GetData()
 	if err != nil {
 		return "", err
@@ -541,6 +578,11 @@ func main() {
 		Value:       logrus.GetLevel().String(),
 		Destination: &loglevel,
 	}
+	cacheLocalFlag := cli.BoolFlag{
+		Name:        "cache-local",
+		Usage:       "Used with external, this flag saves a copy of the key/value pair in the local meta",
+		Destination: &metaSpec.CacheLocal,
+	}
 
 	app.Flags = []cli.Flag{metaSpaceFlag, sdLoglevelFlag}
 	app.Before = func(context *cli.Context) error {
@@ -588,7 +630,7 @@ func main() {
 			},
 			Flags: []cli.Flag{
 				externalFlag, skipFetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdAPIURLFlag,
-				sdPipelineIDFlag, skipStoreExternalFlag,
+				sdPipelineIDFlag, skipStoreExternalFlag, cacheLocalFlag,
 			},
 		},
 		{
