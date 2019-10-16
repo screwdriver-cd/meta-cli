@@ -102,12 +102,7 @@ func (m *MetaSpec) GetExternalData() ([]byte, error) {
 			logrus.Debugf("%s doesn't exist; skipping fetch", metaFilePath)
 			return []byte("{}"), nil
 		}
-		logrus.Debugf("%s doesn't exist; setting up", metaFilePath)
-		_, err = m.SetupDir()
-		if err != nil {
-			return nil, err
-		}
-		logrus.Debugf("Fetching metadata from %s", jobDescription.External())
+		logrus.Debugf("%s doesn't exist; fetching metadata from %s", metaFilePath, jobDescription.External())
 		if metaData, err = m.LastSuccessfulMetaRequest.FetchLastSuccessfulMeta(jobDescription); err != nil {
 			return nil, err
 		}

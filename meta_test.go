@@ -112,6 +112,33 @@ func (s *MetaSuite) TestExternalMetaFileDeletesSd() {
 	s.Assert().Equal("null", got)
 }
 
+func (s *MetaSuite) TestExternalMetaDoesntCreateFile() {
+	var mockHandler MockHandler
+	mockHandler.On("ServeHTTP", mock.Anything, mock.Anything).
+		Once().
+		Run(func(args mock.Arguments) {
+			_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), s.JobsJSON)
+		})
+	mockHandler.On("ServeHTTP", mock.Anything, mock.Anything).
+		Once().
+		Run(func(args mock.Arguments) {
+			_, _ = io.WriteString(args.Get(0).(http.ResponseWriter), `{"foo":"bar"}`)
+		})
+	testServer := httptest.NewServer(&mockHandler)
+	defer testServer.Close()
+
+	s.MetaSpec.MetaFile = `sd@1016708:job1`
+	s.MetaSpec.LastSuccessfulMetaRequest.Transport = testServer.Client().Transport
+	s.MetaSpec.LastSuccessfulMetaRequest.SdAPIURL = testServer.URL + "/v4/"
+
+	// Test set (meta file is not meta.json, should fail)
+	got, err := s.MetaSpec.Get("sd")
+	s.Require().NoError(err)
+	s.Assert().Equal("null", got)
+	_, err = os.Stat(s.MetaSpec.MetaFilePath())
+	s.Assert().True(os.IsNotExist(err), "%s should not exist", s.MetaSpec.MetaFilePath())
+}
+
 func (s *MetaSuite) TestGetMetaNoFile() {
 	_ = os.RemoveAll(testDir)
 	got, err := s.MetaSpec.Get("woof")
@@ -807,7 +834,8 @@ func (s *MetaSuite) TestMetaSpec_GetExternalData() {
 			mockHandler.AssertExpectations(s.T())
 
 			// Ensure that the caching behavior works too
-			s.Assert().FileExists(metaSpec.MetaFilePath())
+			_, err = os.Stat(metaSpec.MetaFilePath())
+			s.Assert().True(os.IsNotExist(err), "%s should not exist", metaSpec.MetaFilePath())
 			defaultMeta := metaSpec.CloneDefaultMeta()
 			sdVal, err := defaultMeta.Get("sd")
 			s.Assert().NoError(err)
