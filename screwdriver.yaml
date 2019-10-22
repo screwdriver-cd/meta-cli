@@ -4,11 +4,12 @@ shared:
     environment:
         GOPATH: /sd/workspace
         GO111MODULE: on
-        
+
 jobs:
     main:
         requires: [~pr, ~commit]
         steps:
+            - goversion: go version
             - modverify: go mod verify
             - vet: go vet ./...
             - gofmt: (! gofmt -d . | grep '^')
