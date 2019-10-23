@@ -863,3 +863,79 @@ func (s *MetaSuite) TestMetaSpec_SkipFetchDoesntSave() {
 	s.Require().NoError(err, `Should be able to get missing "sd" key without err`)
 	s.Assert().Equal("null", sdVal, "sd should not have any cached values, but had %s", sdVal)
 }
+
+func (s *MetaSuite) TestMetaSpec_CachedGet() {
+	tests := []struct {
+		name     string
+		spec     MetaSpec
+		key      string
+		want     string
+		validate func(spec *MetaSpec, got string)
+		wantErr  bool
+	}{
+		{
+			name: "str",
+			spec: MetaSpec{
+				MetaSpace:  testDir,
+				MetaFile:   externalFile,
+				JSONValue:  false,
+				CacheLocal: true,
+			},
+			key:  "str",
+			want: "meow",
+		},
+		{
+			name: "obj.abc",
+			spec: MetaSpec{
+				MetaSpace:  testDir,
+				MetaFile:   externalFile,
+				JSONValue:  false,
+				CacheLocal: true,
+			},
+			key:  "obj.abc",
+			want: "def",
+		},
+		{
+			name: "obj",
+			spec: MetaSpec{
+				MetaSpace:  testDir,
+				MetaFile:   externalFile,
+				JSONValue:  false,
+				CacheLocal: true,
+			},
+			key:  "obj",
+			want: `{"abc":"def"}`,
+			validate: func(spec *MetaSpec, got string) {
+				s2, err := spec.Get("obj.abc")
+				s.Require().NoError(err)
+				s.Assert().Equal("def", s2)
+			},
+		},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			_ = os.RemoveAll(testDir)
+			s.SetupTest()
+			s.Require().NoError(s.CopyMockFile(externalFile))
+			got, err := tt.spec.Get(tt.key)
+			if tt.wantErr {
+				s.Require().Error(err)
+				return
+			}
+			// Assert that it equals on the first pass.
+			s.Require().NoError(err)
+			s.Assert().Equal(tt.want, got)
+
+			// Get local clone and disable cachedGet then assert again.
+			localClone := tt.spec.CloneDefaultMeta()
+			localClone.CacheLocal = false
+			got, err = tt.spec.Get(tt.key)
+			s.Require().NoError(err)
+			s.Assert().Equal(tt.want, got)
+
+			if tt.validate != nil {
+				tt.validate(&tt.spec, got)
+			}
+		})
+	}
+}

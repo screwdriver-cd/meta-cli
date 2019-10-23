@@ -50,6 +50,7 @@ OPTIONS:
    --sd-api-url value, -u value      Set the SD_API_URL to use in SD API calls (default: "https://api.screwdriver.cd/v4/") [$SD_API_URL]
    --sd-pipeline-id value, -p value  Set the SD_PIPELINE_ID of the job for fetching last successful meta (default: 0) [$SD_PIPELINE_ID]
    --skip-store                      Used with --external to skip storing external metadata in the local meta
+   --cache-local                     Used with external, this flag saves a copy of the key/value pair in the local meta
 
 ---
 NAME:
