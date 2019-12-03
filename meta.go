@@ -523,7 +523,8 @@ func main() {
 	metaSpaceFlag := cli.StringFlag{
 		Name:        "meta-space",
 		Usage:       "Location of meta temporarily",
-		Value:       "/sd/meta",
+		EnvVar:      "SD_META_DIR",
+		Value:       defaultMetaSpace,
 		Destination: &metaSpec.MetaSpace,
 	}
 	externalFlag := cli.StringFlag{
