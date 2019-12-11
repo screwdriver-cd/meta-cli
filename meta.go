@@ -658,6 +658,43 @@ func main() {
 			},
 			Flags: []cli.Flag{jsonValueFlag},
 		},
+		{
+			Name:  "dump",
+			Usage: "Dump the entire metadata store in json format",
+			Action: func(c *cli.Context) error {
+				// Ensure that the CLI is concurrency safe. Get may write if fetching lastSuccessful; lock exclusively.
+				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
+				if err := flocker.Lock(); err != nil {
+					failureExit(err)
+				}
+				defer func() { _ = flocker.Unlock() }()
+
+				if c.NArg() != 0 {
+					logrus.Error("meta dump expects no arguments")
+					return cli.ShowCommandHelp(c, "dump")
+				}
+
+				if _, err := fetch.ParseJobDescription(metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineID, metaSpec.MetaFile); metaSpec.IsExternal() && err != nil {
+					failureExit(err)
+				}
+
+				metaJSON, err := metaSpec.GetData()
+				if err != nil {
+					failureExit(err)
+				}
+
+				_, err = os.Stdout.Write(metaJSON) //# io.Write(os.Stdout, metaJSON)
+				if err != nil {
+					failureExit(err)
+				}
+				successExit()
+				return nil
+			},
+			Flags: []cli.Flag{
+				externalFlag, skipFetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdAPIURLFlag,
+				sdPipelineIDFlag, skipStoreExternalFlag, cacheLocalFlag,
+			},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
