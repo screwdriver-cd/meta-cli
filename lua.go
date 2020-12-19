@@ -143,23 +143,17 @@ func (l *LuaSpec) dispatchCmd(L *lua.State) int {
 	return 0
 }
 
-func (l *LuaSpec) injectAPI() error {
+func (l *LuaSpec) metaAPI(L *lua.State) int {
+	// Create the api table for meta
 	l.CreateTable(0, 1)
 
+	// Create the metadata for the api table and set the __index func to dispatch
 	l.CreateTable(0, 1)
 	l.PushGoFunction(l.dispatchCmd)
 	l.SetField(-2, "__index")
 	l.SetMetaTable(-2)
 
-	// inject global api namespace
-	l.Global("package")
-	l.Field(-1, "loaded")
-	l.PushValue(-3)
-	l.SetField(-2, "meta")
-	l.Pop(2)
-	l.SetGlobal("meta")
-
-	return nil
+	return 1
 }
 
 func (l *LuaSpec) initLua() error {
@@ -173,7 +167,8 @@ func (l *LuaSpec) initLua() error {
 		"dump": l.dumpCmd,
 	}
 	lua.OpenLibraries(l.State)
-	return l.injectAPI()
+	lua.Require(l.State, "meta", l.metaAPI, true)
+	return nil
 }
 
 func (l *LuaSpec) Run() error {
