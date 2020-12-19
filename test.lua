@@ -43,4 +43,7 @@ assert(inc("missing") == 1)
 assert(inc("missing") == 2)
 
 -- test dump
-assert(meta.dump())
+assert(meta.set("yowza", "abc") == nil)
+d, err = meta.dump()
+assert(err == nil)
+assert(d["yowza"] == "abc")
