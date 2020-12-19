@@ -104,9 +104,7 @@ func (l *LuaSpec) execCmdInLuaScript(curCmd string) func(L *lua.State) int {
 		for i := 1; i <= nargs; i++ {
 			luaType := L.TypeOf(i)
 			switch luaType {
-			case lua.TypeNumber:
-				fallthrough
-			case lua.TypeString:
+			case lua.TypeNumber, lua.TypeString:
 				if s, ok := lua.ToStringMeta(L, i); ok {
 					args = append(args, s)
 				}
