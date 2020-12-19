@@ -46,6 +46,21 @@ assert(inc("missing") == 2)
 assert(meta.set("yowza", "abc") == nil)
 d, err = meta.dump()
 assert(err == nil)
-json =  require("json")
+json = require("json")
 print(json.encode(d))
 assert(d["yowza"] == "abc", string.format("d.yowza=%s", d["yowza"]))
+
+-- test other types
+-- number
+assert(meta.set("abc", 123) == nil)
+assert(meta.get("abc") == 123)
+assert(meta.set("def", 543.21) == nil)
+assert(meta.get("def") == 543.21)
+
+-- nested table
+myvals = { foo = "bar", yada = { yada = "yada" } }
+assert(meta.set("table", myvals) == nil)
+assert(meta.get("table.foo") == myvals.foo)
+assert(meta.get("table.yada.yada") == myvals.yada.yada)
+assert(json.encode(meta.get("table")) == json.encode(myvals))
+
