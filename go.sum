@@ -1,5 +1,3 @@
-github.com/Shopify/go-lua v0.0.0-20201204192124-b252935ae7ee h1:a8a3qS6qPtofIk7vgf/qqMRWgHsynXBLhVCakEqIOHs=
-github.com/Shopify/go-lua v0.0.0-20201204192124-b252935ae7ee/go.mod h1:lvS2IGWEGk+KQkRrCXuWlcsHO5BitT0HyhnP51rh3gA=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e h1:fY5BOSpyZCqRo5OhCuC+XN+r/bBCmeuuJtjz+bCNIf8=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

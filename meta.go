@@ -505,10 +505,7 @@ func main() {
 		MetaFile:                     defaultMetaFile,
 		JSONValue:                    false,
 	}
-	luaSpec := LuaSpec{
-		MetaSpec: &metaSpec,
-	}
-	gluaSpec := GLuaSpec{
+	gluaSpec := LuaSpec{
 		MetaSpec: &metaSpec,
 	}
 	loglevel := logrus.GetLevel().String()
@@ -556,11 +553,6 @@ func main() {
 		Destination: &metaSpec.JSONValue,
 	}
 	evaluateFileFlag := cli.StringFlag{
-		Name:        "evaluate, e",
-		Usage:       "lua script to evaluate",
-		Destination: &luaSpec.EvaluateFile,
-	}
-	gEvaluateFileFlag := cli.StringFlag{
 		Name:        "evaluate, e",
 		Usage:       "lua script to evaluate",
 		Destination: &gluaSpec.EvaluateFile,
@@ -721,23 +713,9 @@ func main() {
 					failureExit(err)
 				}
 				defer func() { _ = flocker.Unlock() }()
-				return luaSpec.Run()
-			},
-			Flags: []cli.Flag{jsonValueFlag, evaluateFileFlag},
-		},
-		{
-			Name:  "glua",
-			Usage: "Run a gopher-lua script",
-			Action: func(c *cli.Context) error {
-				// Ensure that the CLI is concurrency safe.
-				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
-				if err := flocker.Lock(); err != nil {
-					failureExit(err)
-				}
-				defer func() { _ = flocker.Unlock() }()
 				return gluaSpec.Run()
 			},
-			Flags: []cli.Flag{jsonValueFlag, gEvaluateFileFlag},
+			Flags: []cli.Flag{jsonValueFlag, evaluateFileFlag},
 		},
 	}
 

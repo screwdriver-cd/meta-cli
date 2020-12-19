@@ -3,7 +3,6 @@ module github.com/screwdriver-cd/meta-cli
 go 1.12
 
 require (
-	github.com/Shopify/go-lua v0.0.0-20201204192124-b252935ae7ee
 	github.com/gofrs/flock v0.7.1
 	github.com/layeh/gopher-json v0.0.0-20201124131017-552bb3c4c3bf
 	github.com/sirupsen/logrus v1.4.2

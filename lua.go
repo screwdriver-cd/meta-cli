@@ -1,203 +1,141 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/Shopify/go-lua"
-	"github.com/sirupsen/logrus"
-	"strings"
+	json "github.com/layeh/gopher-json"
+	"github.com/yuin/gopher-lua"
 )
 
 type (
-	Cmd     func(...string) (interface{}, error)
 	LuaSpec struct {
 		// Inputs
 		*MetaSpec
 		EvaluateFile string
 
-		// Set during Run
-		*lua.State
-		cmdMap map[string]Cmd
+		// Valid during run
+		L *lua.LState
 	}
 )
 
-func (l *LuaSpec) getCmd(args ...string) (interface{}, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("get requires exactly one argument; the key; not %d", len(args))
+const (
+	luaMetaSpecTypeName = "MetaSpec"
+)
+
+func metaSpecGet(L *lua.LState) int {
+	meta := checkMeta(L)
+	if L.GetTop() != 2 {
+		L.RaiseError("Require 1 arg, but %d were passed", L.GetTop()-1)
+		return 0
 	}
-	got, err := l.Get(args[0])
+	got, err := meta.Get(L.CheckString(2))
 	if err != nil {
-		return nil, err
+		L.RaiseError(err.Error())
+		return 0
 	}
-	if got == "null" {
-		return nil, nil
-	}
-	return got, nil
+	L.Push(lua.LString(got))
+	return 1
 }
 
-func (l *LuaSpec) setCmd(args ...string) (interface{}, error) {
-	if len(args) != 2 {
-		return nil, fmt.Errorf("set requires exactly two argument; the key and value; not %d", len(args))
+func metaSpecSet(L *lua.LState) int {
+	meta := checkMeta(L)
+	if L.GetTop() != 3 {
+		L.RaiseError("Require 2 args, but %d were passed", L.GetTop()-1)
+		return 0
 	}
-	return nil, l.Set(args[0], args[1])
-}
-
-func (l *LuaSpec) dumpCmd(args ...string) (interface{}, error) {
-	data, err := l.GetData()
+	err := meta.Set(L.CheckString(2), L.CheckString(3))
 	if err != nil {
-		return nil, err
+		L.RaiseError(err.Error())
+		return 0
 	}
-	var jsonData interface{}
-	if err = json.Unmarshal(data, &jsonData); err != nil {
-		return nil, err
-	}
-	return jsonData, nil
-}
-
-func (l *LuaSpec) pushList(list []interface{}) {
-	l.CreateTable(len(list), 0)
-	for i, elem := range list {
-		l.push(elem)
-		l.RawSetInt(-2, i+1)
-	}
-}
-
-func (l *LuaSpec) pushMap(res map[string]interface{}) {
-	l.CreateTable(0, len(res))
-	for k, v := range res {
-		l.PushString(k)
-		l.push(v)
-		l.RawSet(-3)
-	}
-}
-
-func (l *LuaSpec) push(elem interface{}) {
-	switch res := elem.(type) {
-	case bool:
-		l.PushBoolean(res)
-	case []byte:
-		l.PushString(string(res))
-	case string:
-		l.PushString(res)
-	case []interface{}:
-		l.pushList(res)
-	case map[string]interface{}:
-		l.pushMap(res)
-	case int:
-		l.PushInteger(res)
-	case float32:
-		l.PushNumber(float64(res))
-	case float64:
-		l.PushNumber(res)
-	case nil:
-		l.PushNil()
-	default:
-		l.PushFString("elem of type %s is unsupported", fmt.Sprintf("%T", res))
-		l.Error()
-	}
-}
-
-func (l *LuaSpec) execCmdInLuaScript(curCmd string) func(L *lua.State) int {
-	return func(L *lua.State) int {
-		var args []string
-		nargs := L.Top()
-		for i := 1; i <= nargs; i++ {
-			luaType := L.TypeOf(i)
-			switch luaType {
-			case lua.TypeNumber, lua.TypeString:
-				if s, ok := lua.ToStringMeta(L, i); ok {
-					args = append(args, s)
-				}
-			case lua.TypeNil:
-
-			default:
-				// arg x is one based, like other stuff in lua land
-				L.PushFString("The type of arg %d is incorrect, only number and string are acceptable", i)
-				L.Error()
-			}
-		}
-		// we have checked the existence of 'curCmd' before
-		f, _ := l.cmdMap[curCmd]
-		res, err := f(args...)
-		if err != nil {
-			L.PushNil()
-			L.PushString(err.Error())
-			return 2
-		}
-		l.push(res)
-		return 1
-	}
-}
-
-func (l *LuaSpec) dispatchCmd(L *lua.State) int {
-	// ignore the meta table itself (the first arg)
-	if s, ok := lua.ToStringMeta(L, 2); ok {
-		s = strings.ToLower(s)
-		_, ok = l.cmdMap[s]
-		if ok {
-			L.PushGoFunction(l.execCmdInLuaScript(s))
-			return 1
-		}
-	}
-	// it is equal to return nil
 	return 0
 }
 
-func (l *LuaSpec) metaAPI(L *lua.State) int {
-	// Create the api table for meta
-	l.CreateTable(0, 1)
-
-	// Create the metadata for the api table and set the __index func to dispatch
-	l.CreateTable(0, 1)
-	l.PushGoFunction(l.dispatchCmd)
-	l.SetField(-2, "__index")
-	l.SetMetaTable(-2)
-
+func metaSpecDump(L *lua.LState) int {
+	meta := checkMeta(L)
+	if L.GetTop() != 1 {
+		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
+		return 0
+	}
+	data, err := meta.GetData()
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	decoded, err := json.Decode(L, data)
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	L.Push(decoded)
 	return 1
 }
-func (l *LuaSpec) installLunaRocks() error {
-	inputs := map[string]string{
-		"lunajson.encoder": "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson/encoder.lua",
-		"lunajson.decoder": "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson/decoder.lua",
-		"lunajson.sax":     "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson/sax.lua",
-		"lunajson":         "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson.lua",
+
+func registerMetaSpecType(L *lua.LState) *lua.LTable {
+	mt := L.NewTypeMetatable(luaMetaSpecTypeName)
+	L.SetGlobal(luaMetaSpecTypeName, mt)
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
+		"get":  metaSpecGet,
+		"set":  metaSpecSet,
+		"dump": metaSpecDump,
+	}))
+	return mt
+}
+
+func metaSpecToLua(L *lua.LState, spec *MetaSpec) *lua.LUserData {
+	ud := L.NewUserData()
+	ud.Value = spec
+	L.SetMetatable(ud, L.GetTypeMetatable(luaMetaSpecTypeName))
+	return ud
+}
+
+func checkMeta(L *lua.LState) *MetaSpec {
+	ud := L.CheckUserData(1)
+	if v, ok := ud.Value.(*MetaSpec); ok {
+		return v
 	}
-	for k, v := range inputs {
-		lua.Require(l.State, k, func(state *lua.State) int {
-			err := lua.LoadFile(l.State, v, "text")
-			if err != nil {
-				l.PushFString(err.Error())
-				l.Error()
-			}
-			l.Call(0, 1)
-			return 1
-		}, true)
-	}
+	L.ArgError(1, "MetaSpec expected")
 	return nil
 }
 
-func (l *LuaSpec) initLua() error {
-	//metaSpec := *l.MetaSpec
-	//l.MetaSpec = &metaSpec
-	//l.MetaSpec.JSONValue = true
-	l.State = lua.NewState()
-	l.cmdMap = map[string]Cmd{
-		"get":  l.getCmd,
-		"set":  l.setCmd,
-		"dump": l.dumpCmd,
+func callMethod(L *lua.LState, o *lua.LUserData, fname string, nret int) int {
+	top := L.GetTop()
+	f := L.GetField(o, fname)
+	L.Push(f)
+	L.Push(o)
+	for i := 0; i < top; i++ {
+		L.Push(L.Get(- top - 2))
 	}
-	lua.OpenLibraries(l.State)
-	lua.Require(l.State, "meta", l.metaAPI, true)
-	return l.installLunaRocks()
+	L.Call(top+1, nret)
+	return nret
+}
+
+func (l *LuaSpec) init() error {
+	json.Preload(l.L)
+	registerMetaSpecType(l.L)
+	ud := metaSpecToLua(l.L, l.MetaSpec)
+	meta := l.L.RegisterModule("meta", map[string]lua.LGFunction{
+		"get": func(L *lua.LState) int {
+			return callMethod(L, ud, "get", 1)
+		},
+		"set": func(L *lua.LState) int {
+			return callMethod(L, ud, "set", 0)
+		},
+		"dump": func(L *lua.LState) int {
+			return callMethod(L, ud, "dump", 1)
+		},
+	})
+	l.L.SetField(meta, "global", ud)
+	return nil
 }
 
 func (l *LuaSpec) Run() error {
-	logrus.Debugf("Running lua evaluating '%s'", l.EvaluateFile)
-	if err := l.initLua(); err != nil {
+	L := lua.NewState()
+	defer L.Close()
+
+	l.L = L
+	if err := l.init(); err != nil {
 		return err
 	}
-	if l.EvaluateFile == "" {
-		return fmt.Errorf("nothing to evaluate")
-	}
-	return lua.DoFile(l.State, l.EvaluateFile)
+
+	return L.DoFile(l.EvaluateFile)
 }
