@@ -23,7 +23,7 @@ const (
 func metaSpecGet(L *lua.LState) int {
 	meta := checkMeta(L)
 	if L.GetTop() != 2 {
-		L.RaiseError("Require 1 arg, but %d were passed", L.GetTop())
+		L.RaiseError("Require 1 arg, but %d were passed", L.GetTop()-1)
 		return 0
 	}
 	got, err := meta.Get(L.CheckString(2))
@@ -38,7 +38,7 @@ func metaSpecGet(L *lua.LState) int {
 func metaSpecSet(L *lua.LState) int {
 	meta := checkMeta(L)
 	if L.GetTop() != 3 {
-		L.RaiseError("Require 2 args, but %d were passed", L.GetTop())
+		L.RaiseError("Require 2 args, but %d were passed", L.GetTop()-1)
 		return 0
 	}
 	err := meta.Set(L.CheckString(2), L.CheckString(3))
@@ -49,14 +49,36 @@ func metaSpecSet(L *lua.LState) int {
 	return 0
 }
 
-func registerMetaSpecType(L *lua.LState) {
+func metaSpecDump(L *lua.LState) int {
+	meta := checkMeta(L)
+	if L.GetTop() != 1 {
+		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
+		return 0
+	}
+	data, err := meta.GetData()
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	decoded, err := json.Decode(L, data)
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	L.Push(decoded)
+	return 1
+}
+
+func registerMetaSpecType(L *lua.LState) *lua.LTable {
 	mt := L.NewTypeMetatable(luaMetaSpecTypeName)
 	L.SetGlobal(luaMetaSpecTypeName, mt)
 	// methods
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-		"get": metaSpecGet,
-		"set": metaSpecSet,
+		"get":  metaSpecGet,
+		"set":  metaSpecSet,
+		"dump": metaSpecDump,
 	}))
+	return mt
 }
 
 func metaSpecToLua(L *lua.LState, spec *MetaSpec) *lua.LUserData {
@@ -75,26 +97,31 @@ func checkMeta(L *lua.LState) *MetaSpec {
 	return nil
 }
 
+func callMethod(L *lua.LState, o *lua.LUserData, fname string, nret int) int {
+	top := L.GetTop()
+	f := L.GetField(o, fname)
+	L.Push(f)
+	L.Push(o)
+	for i := 0; i < top; i++ {
+		L.Push(L.Get(- top - 2))
+	}
+	L.Call(top+1, nret)
+	return nret
+}
+
 func (l *GLuaSpec) init() error {
 	json.Preload(l.L)
 	registerMetaSpecType(l.L)
 	ud := metaSpecToLua(l.L, l.MetaSpec)
 	meta := l.L.RegisterModule("meta", map[string]lua.LGFunction{
 		"get": func(L *lua.LState) int {
-			k := L.Get(1)
-			L.Pop(1)
-			L.Push(ud)
-			L.Push(k)
-			return metaSpecGet(L)
+			return callMethod(L, ud, "get", 1)
 		},
 		"set": func(L *lua.LState) int {
-			k := L.Get(1)
-			v := L.Get(2)
-			L.Pop(2)
-			L.Push(ud)
-			L.Push(k)
-			L.Push(v)
-			return metaSpecSet(L)
+			return callMethod(L, ud, "set", 0)
+		},
+		"dump": func(L *lua.LState) int {
+			return callMethod(L, ud, "dump", 1)
 		},
 	})
 	l.L.SetField(meta, "global", ud)
