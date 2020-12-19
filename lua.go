@@ -3,6 +3,7 @@ package main
 import (
 	json "github.com/layeh/gopher-json"
 	"github.com/yuin/gopher-lua"
+	"io/ioutil"
 )
 
 type (
@@ -80,14 +81,34 @@ func metaSpecDump(L *lua.LState) int {
 	return 1
 }
 
+func metaSpecUndump(L *lua.LState) int {
+	meta := checkMeta(L)
+	if L.GetTop() != 2 {
+		L.RaiseError("Require 1 args, but %d were passed", L.GetTop()-1)
+		return 0
+	}
+	data, err := json.Encode(L.CheckAny(2))
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	err = ioutil.WriteFile(meta.MetaFilePath(), data, 0666)
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	return 0
+}
+
 func registerMetaSpecType(L *lua.LState) *lua.LTable {
 	mt := L.NewTypeMetatable(luaMetaSpecTypeName)
 	L.SetGlobal(luaMetaSpecTypeName, mt)
 	// methods
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-		"get":  metaSpecGet,
-		"set":  metaSpecSet,
-		"dump": metaSpecDump,
+		"get":    metaSpecGet,
+		"set":    metaSpecSet,
+		"dump":   metaSpecDump,
+		"undump": metaSpecUndump,
 	}))
 	return mt
 }
@@ -133,6 +154,9 @@ func (l *LuaSpec) init() error {
 		},
 		"dump": func(L *lua.LState) int {
 			return callMethod(L, ud, "dump", 1)
+		},
+		"undump": func(L *lua.LState) int {
+			return callMethod(L, ud, "undump", 0)
 		},
 	})
 	l.L.SetField(meta, "global", ud)
