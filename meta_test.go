@@ -939,3 +939,11 @@ func (s *MetaSuite) TestMetaSpec_CachedGet() {
 		})
 	}
 }
+
+func (s *MetaSuite) TestMetaSpec_Lua() {
+	l := LuaSpec{
+		MetaSpec:     &s.MetaSpec,
+		EvaluateFile: "test.lua",
+	}
+	s.Assert().NoError(l.Run())
+}
