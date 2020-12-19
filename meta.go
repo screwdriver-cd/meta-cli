@@ -553,7 +553,7 @@ func main() {
 		Destination: &metaSpec.JSONValue,
 	}
 	evaluateFileFlag := cli.StringFlag{
-		Name:        "evaluate, e",
+		Name:        "evaluate, E",
 		Usage:       "lua script to evaluate",
 		Destination: &luaSpec.EvaluateFile,
 	}
@@ -717,11 +717,13 @@ func main() {
 					luaSpec.EvaluateString = c.Args()[0]
 				}
 				if (luaSpec.EvaluateString != "") == (luaSpec.EvaluateFile != "") {
-					return fmt.Errorf("lua requires either a file (with --evaluate/-e arg) or a string arg")
+					return fmt.Errorf("lua requires either a file (with --evaluate/-E arg) or a string arg")
 				}
 				return luaSpec.Do()
 			},
-			Flags: []cli.Flag{evaluateFileFlag},
+			Flags: []cli.Flag{
+				evaluateFileFlag, externalFlag, skipFetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag,
+				sdAPIURLFlag, sdPipelineIDFlag, skipStoreExternalFlag, cacheLocalFlag},
 		},
 	}
 

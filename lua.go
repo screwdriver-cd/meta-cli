@@ -22,7 +22,7 @@ const (
 
 // metaSpecGet(key) returns json.decode(meta.Get(key))
 func metaSpecGet(L *lua.LState) int {
-	meta := checkMeta(L)
+	meta := checkMetaSpec(L)
 	if L.GetTop() != 2 {
 		L.RaiseError("Require 1 arg, but %d were passed", L.GetTop()-1)
 		return 0
@@ -43,7 +43,7 @@ func metaSpecGet(L *lua.LState) int {
 
 // metaSpecSet(key, value) performs meta.Set(key, json.encode(value))
 func metaSpecSet(L *lua.LState) int {
-	meta := checkMeta(L)
+	meta := checkMetaSpec(L)
 	if L.GetTop() != 3 {
 		L.RaiseError("Require 2 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -64,7 +64,7 @@ func metaSpecSet(L *lua.LState) int {
 
 // metaSpecDump returns json.decode(meta.Dump())
 func metaSpecDump(L *lua.LState) int {
-	meta := checkMeta(L)
+	meta := checkMetaSpec(L)
 	if L.GetTop() != 1 {
 		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -85,7 +85,7 @@ func metaSpecDump(L *lua.LState) int {
 
 // metaSpecUndump(o) writes json.encode(o) to the meta.MetaFilePath()
 func metaSpecUndump(L *lua.LState) int {
-	meta := checkMeta(L)
+	meta := checkMetaSpec(L)
 	if L.GetTop() != 2 {
 		L.RaiseError("Require 1 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -103,16 +103,70 @@ func metaSpecUndump(L *lua.LState) int {
 	return 0
 }
 
+// metaSpecCloneOverride(o) clones the global spec and overrides the settings
+func metaSpecCloneOverride(L *lua.LState) int {
+	overrides := lua.LNil
+	switch L.GetTop() {
+	case 1:
+	case 2:
+		overrides = L.CheckTable(2)
+	default:
+		L.RaiseError("Require 0 or 1 args, but %d were passed", L.GetTop()-1)
+		return 0
+	}
+
+	meta := L.GetGlobal("meta")
+	L.Push(L.GetField(meta, "spec"))
+	metaSpec := checkMetaSpec(L).CloneDefaultMeta()
+
+	if overrides != lua.LNil {
+		if field := L.GetField(overrides, "MetaSpace"); field != lua.LNil {
+			metaSpec.MetaSpace = lua.LVAsString(field)
+		}
+		if field := L.GetField(overrides, "SkipFetchNonexistentExternal"); field != lua.LNil {
+			metaSpec.SkipFetchNonexistentExternal = lua.LVAsBool(field)
+		}
+		if field := L.GetField(overrides, "MetaFile"); field != lua.LNil {
+			metaSpec.MetaFile = lua.LVAsString(field)
+		}
+		// JSONValue must be true
+		metaSpec.JSONValue = true
+		if field := L.GetField(overrides, "SkipStoreExternal"); field != lua.LNil {
+			metaSpec.SkipStoreExternal = lua.LVAsBool(field)
+		}
+		if field := L.GetField(overrides, "LastSuccessfulMetaRequest"); field != lua.LNil {
+			if field = L.GetField(field, "SdToken"); field != lua.LNil {
+				metaSpec.LastSuccessfulMetaRequest.SdToken = lua.LVAsString(field)
+			}
+			if field = L.GetField(field, "SdAPIURL"); field != lua.LNil {
+				metaSpec.LastSuccessfulMetaRequest.SdAPIURL = lua.LVAsString(field)
+			}
+			if field = L.GetField(field, "DefaultSdPipelineID"); field != lua.LNil {
+				metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineID = int64(lua.LVAsNumber(field))
+			}
+			// Transport can't be set
+		}
+		if field := L.GetField(overrides, "CacheLocal"); field != lua.LNil {
+			metaSpec.CacheLocal = lua.LVAsBool(field)
+		}
+	}
+
+	L.Push(metaSpecToLua(L, metaSpec))
+	return 1
+}
+
 // registerMetaSpecType registers the MetaSpec type and adds methods via __index meta method
 func registerMetaSpecType(L *lua.LState) *lua.LTable {
 	mt := L.NewTypeMetatable(luaMetaSpecTypeName)
 	L.SetGlobal(luaMetaSpecTypeName, mt)
+
 	// methods
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-		"get":    metaSpecGet,
-		"set":    metaSpecSet,
-		"dump":   metaSpecDump,
-		"undump": metaSpecUndump,
+		"get":           metaSpecGet,
+		"set":           metaSpecSet,
+		"dump":          metaSpecDump,
+		"undump":        metaSpecUndump,
+		"cloneOverride": metaSpecCloneOverride,
 	}))
 	return mt
 }
@@ -125,8 +179,8 @@ func metaSpecToLua(L *lua.LState, spec *MetaSpec) *lua.LUserData {
 	return ud
 }
 
-// checkMeta like lua.LState.Check methods, this ensures the args is UserData and casts to *MetaSpec then returns it.
-func checkMeta(L *lua.LState) *MetaSpec {
+// checkMetaSpec like lua.LState.Check methods, this ensures the args is UserData and casts to *MetaSpec then returns it.
+func checkMetaSpec(L *lua.LState) *MetaSpec {
 	ud := L.CheckUserData(1)
 	if v, ok := ud.Value.(*MetaSpec); ok {
 		return v
@@ -168,10 +222,11 @@ func (l *LuaSpec) initState(L *lua.LState) error {
 
 	// Register methods on global "meta" that call the lua MetaData object
 	meta := L.RegisterModule("meta", map[string]lua.LGFunction{
-		"get":    callMethodLGFunction(ud, "get", 1),
-		"set":    callMethodLGFunction(ud, "set", 0),
-		"dump":   callMethodLGFunction(ud, "dump", 1),
-		"undump": callMethodLGFunction(ud, "undump", 0),
+		"get":           callMethodLGFunction(ud, "get", 1),
+		"set":           callMethodLGFunction(ud, "set", 0),
+		"dump":          callMethodLGFunction(ud, "dump", 1),
+		"undump":        callMethodLGFunction(ud, "undump", 0),
+		"cloneOverride": callMethodLGFunction(ud, "cloneOverride", 1),
 	})
 
 	// Register our lua MetaSpec as a field "spec". calling meta.get("key") is identical to meta.spec:get("key")
