@@ -31,7 +31,12 @@ func metaSpecGet(L *lua.LState) int {
 		L.RaiseError(err.Error())
 		return 0
 	}
-	L.Push(lua.LString(got))
+	jsonResponse, err := json.Decode(L, []byte(got))
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	L.Push(jsonResponse)
 	return 1
 }
 
@@ -41,7 +46,13 @@ func metaSpecSet(L *lua.LState) int {
 		L.RaiseError("Require 2 args, but %d were passed", L.GetTop()-1)
 		return 0
 	}
-	err := meta.Set(L.CheckString(2), L.CheckString(3))
+	value := L.CheckAny(3)
+	data, err := json.Encode(value)
+	if err != nil {
+		L.RaiseError(err.Error())
+		return 0
+	}
+	err = meta.Set(L.CheckString(2), string(data))
 	if err != nil {
 		L.RaiseError(err.Error())
 		return 0
@@ -129,6 +140,8 @@ func (l *LuaSpec) init() error {
 }
 
 func (l *LuaSpec) Run() error {
+	l.MetaSpec.JSONValue = true
+
 	L := lua.NewState()
 	defer L.Close()
 

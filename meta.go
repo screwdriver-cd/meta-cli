@@ -715,7 +715,7 @@ func main() {
 				defer func() { _ = flocker.Unlock() }()
 				return gluaSpec.Run()
 			},
-			Flags: []cli.Flag{jsonValueFlag, evaluateFileFlag},
+			Flags: []cli.Flag{evaluateFileFlag},
 		},
 	}
 

@@ -2,7 +2,7 @@
 -- test starting key is empty
 foo, err = meta.get("foo")
 assert(err == nil)
-assert(foo == nil)
+assert(foo == nil, foo)
 
 -- test setting key then getting it yields proper result
 meta.set("foo", "bar")
@@ -46,4 +46,6 @@ assert(inc("missing") == 2)
 assert(meta.set("yowza", "abc") == nil)
 d, err = meta.dump()
 assert(err == nil)
-assert(d["yowza"] == "abc")
+json =  require("json")
+print(json.encode(d))
+assert(d["yowza"] == "abc", string.format("d.yowza=%s", d["yowza"]))
