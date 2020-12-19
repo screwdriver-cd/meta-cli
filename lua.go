@@ -11,10 +11,12 @@ import (
 type (
 	Cmd     func(...string) (interface{}, error)
 	LuaSpec struct {
+		// Inputs
 		*MetaSpec
 		EvaluateFile string
 
-		vm     *lua.State
+		// Set during Run
+		*lua.State
 		cmdMap map[string]Cmd
 	}
 )
@@ -52,46 +54,46 @@ func (l *LuaSpec) dumpCmd(args ...string) (interface{}, error) {
 	return jsonData, nil
 }
 
-func (l *LuaSpec) pushList(L *lua.State, list []interface{}) {
-	L.CreateTable(len(list), 0)
+func (l *LuaSpec) pushList(list []interface{}) {
+	l.CreateTable(len(list), 0)
 	for i, elem := range list {
-		l.push(L, elem)
-		L.RawSetInt(-2, i+1)
+		l.push(elem)
+		l.RawSetInt(-2, i+1)
 	}
 }
 
-func (l *LuaSpec) pushMap(L *lua.State, res map[string]interface{}) {
-	L.CreateTable(0, len(res))
+func (l *LuaSpec) pushMap(res map[string]interface{}) {
+	l.CreateTable(0, len(res))
 	for k, v := range res {
-		L.PushString(k)
-		l.push(L, v)
-		L.RawSet(-3)
+		l.PushString(k)
+		l.push(v)
+		l.RawSet(-3)
 	}
 }
 
-func (l *LuaSpec) push(L *lua.State, elem interface{}) {
+func (l *LuaSpec) push(elem interface{}) {
 	switch res := elem.(type) {
 	case bool:
-		L.PushBoolean(res)
+		l.PushBoolean(res)
 	case []byte:
-		L.PushString(string(res))
+		l.PushString(string(res))
 	case string:
-		L.PushString(res)
+		l.PushString(res)
 	case []interface{}:
-		l.pushList(L, res)
+		l.pushList(res)
 	case map[string]interface{}:
-		l.pushMap(L, res)
+		l.pushMap(res)
 	case int:
-		L.PushInteger(res)
+		l.PushInteger(res)
 	case float32:
-		L.PushNumber(float64(res))
+		l.PushNumber(float64(res))
 	case float64:
-		L.PushNumber(res)
+		l.PushNumber(res)
 	case nil:
-		L.PushNil()
+		l.PushNil()
 	default:
-		L.PushFString("elem of type %s is unsupported", fmt.Sprintf("%T", res))
-		L.Error()
+		l.PushFString("elem of type %s is unsupported", fmt.Sprintf("%T", res))
+		l.Error()
 	}
 }
 
@@ -124,7 +126,7 @@ func (l *LuaSpec) execCmdInLuaScript(curCmd string) func(L *lua.State) int {
 			L.PushString(err.Error())
 			return 2
 		}
-		l.push(L, res)
+		l.push(res)
 		return 1
 	}
 }
@@ -144,21 +146,20 @@ func (l *LuaSpec) dispatchCmd(L *lua.State) int {
 }
 
 func (l *LuaSpec) injectAPI() error {
-	L := l.vm
-	L.CreateTable(0, 1)
+	l.CreateTable(0, 1)
 
-	L.CreateTable(0, 1)
-	L.PushGoFunction(l.dispatchCmd)
-	L.SetField(-2, "__index")
-	L.SetMetaTable(-2)
+	l.CreateTable(0, 1)
+	l.PushGoFunction(l.dispatchCmd)
+	l.SetField(-2, "__index")
+	l.SetMetaTable(-2)
 
 	// inject global api namespace
-	L.Global("package")
-	L.Field(-1, "loaded")
-	L.PushValue(-3)
-	L.SetField(-2, "meta")
-	L.Pop(2)
-	L.SetGlobal("meta")
+	l.Global("package")
+	l.Field(-1, "loaded")
+	l.PushValue(-3)
+	l.SetField(-2, "meta")
+	l.Pop(2)
+	l.SetGlobal("meta")
 
 	return nil
 }
@@ -167,13 +168,13 @@ func (l *LuaSpec) initLua() error {
 	//metaSpec := *l.MetaSpec
 	//l.MetaSpec = &metaSpec
 	//l.MetaSpec.JSONValue = true
-	l.vm = lua.NewState()
+	l.State = lua.NewState()
 	l.cmdMap = map[string]Cmd{
 		"get":  l.getCmd,
 		"set":  l.setCmd,
 		"dump": l.dumpCmd,
 	}
-	lua.OpenLibraries(l.vm)
+	lua.OpenLibraries(l.State)
 	return l.injectAPI()
 }
 
@@ -185,5 +186,5 @@ func (l *LuaSpec) Run() error {
 	if l.EvaluateFile == "" {
 		return fmt.Errorf("nothing to evaluate")
 	}
-	return lua.DoFile(l.vm, l.EvaluateFile)
+	return lua.DoFile(l.State, l.EvaluateFile)
 }
