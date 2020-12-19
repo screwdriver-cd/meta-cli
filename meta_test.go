@@ -945,5 +945,5 @@ func (s *MetaSuite) TestMetaSpec_Lua() {
 		MetaSpec:     &s.MetaSpec,
 		EvaluateFile: "test.lua",
 	}
-	s.Assert().NoError(l.Run())
+	s.Assert().NoError(l.Do())
 }

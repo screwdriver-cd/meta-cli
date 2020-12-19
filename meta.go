@@ -505,7 +505,7 @@ func main() {
 		MetaFile:                     defaultMetaFile,
 		JSONValue:                    false,
 	}
-	gluaSpec := LuaSpec{
+	luaSpec := LuaSpec{
 		MetaSpec: &metaSpec,
 	}
 	loglevel := logrus.GetLevel().String()
@@ -555,7 +555,7 @@ func main() {
 	evaluateFileFlag := cli.StringFlag{
 		Name:        "evaluate, e",
 		Usage:       "lua script to evaluate",
-		Destination: &gluaSpec.EvaluateFile,
+		Destination: &luaSpec.EvaluateFile,
 	}
 	sdTokenFlag := cli.StringFlag{
 		Name:        "sd-token, t",
@@ -713,7 +713,13 @@ func main() {
 					failureExit(err)
 				}
 				defer func() { _ = flocker.Unlock() }()
-				return gluaSpec.Run()
+				if c.NArg() == 1 {
+					luaSpec.EvaluateString = c.Args()[0]
+				}
+				if (luaSpec.EvaluateString != "") == (luaSpec.EvaluateFile != "") {
+					return fmt.Errorf("lua requires either a file (with --evaluate/-e arg) or a string arg")
+				}
+				return luaSpec.Do()
 			},
 			Flags: []cli.Flag{evaluateFileFlag},
 		},

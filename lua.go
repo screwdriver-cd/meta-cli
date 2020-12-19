@@ -1,7 +1,8 @@
 package main
 
 import (
-	json "github.com/layeh/gopher-json"
+	"fmt"
+	"github.com/layeh/gopher-json"
 	"github.com/yuin/gopher-lua"
 	"io/ioutil"
 )
@@ -9,11 +10,9 @@ import (
 type (
 	LuaSpec struct {
 		// Inputs
-		*MetaSpec
-		EvaluateFile string
-
-		// Valid during run
-		L *lua.LState
+		MetaSpec       *MetaSpec
+		EvaluateFile   string
+		EvaluateString string
 	}
 )
 
@@ -21,6 +20,7 @@ const (
 	luaMetaSpecTypeName = "MetaSpec"
 )
 
+// metaSpecGet(key) returns json.decode(meta.Get(key))
 func metaSpecGet(L *lua.LState) int {
 	meta := checkMeta(L)
 	if L.GetTop() != 2 {
@@ -41,6 +41,7 @@ func metaSpecGet(L *lua.LState) int {
 	return 1
 }
 
+// metaSpecSet(key, value) performs meta.Set(key, json.encode(value))
 func metaSpecSet(L *lua.LState) int {
 	meta := checkMeta(L)
 	if L.GetTop() != 3 {
@@ -61,6 +62,7 @@ func metaSpecSet(L *lua.LState) int {
 	return 0
 }
 
+// metaSpecDump returns json.decode(meta.Dump())
 func metaSpecDump(L *lua.LState) int {
 	meta := checkMeta(L)
 	if L.GetTop() != 1 {
@@ -81,6 +83,7 @@ func metaSpecDump(L *lua.LState) int {
 	return 1
 }
 
+// metaSpecUndump(o) writes json.encode(o) to the meta.MetaFilePath()
 func metaSpecUndump(L *lua.LState) int {
 	meta := checkMeta(L)
 	if L.GetTop() != 2 {
@@ -100,6 +103,7 @@ func metaSpecUndump(L *lua.LState) int {
 	return 0
 }
 
+// registerMetaSpecType registers the MetaSpec type and adds methods via __index meta method
 func registerMetaSpecType(L *lua.LState) *lua.LTable {
 	mt := L.NewTypeMetatable(luaMetaSpecTypeName)
 	L.SetGlobal(luaMetaSpecTypeName, mt)
@@ -113,6 +117,7 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 	return mt
 }
 
+// metaSpecToLua converts the spec to a lua.LUserData by attaching it to the Value and setting its metatable.
 func metaSpecToLua(L *lua.LState, spec *MetaSpec) *lua.LUserData {
 	ud := L.NewUserData()
 	ud.Value = spec
@@ -120,6 +125,7 @@ func metaSpecToLua(L *lua.LState, spec *MetaSpec) *lua.LUserData {
 	return ud
 }
 
+// checkMeta like lua.LState.Check methods, this ensures the args is UserData and casts to *MetaSpec then returns it.
 func checkMeta(L *lua.LState) *MetaSpec {
 	ud := L.CheckUserData(1)
 	if v, ok := ud.Value.(*MetaSpec); ok {
@@ -129,11 +135,12 @@ func checkMeta(L *lua.LState) *MetaSpec {
 	return nil
 }
 
-func callMethod(L *lua.LState, o *lua.LUserData, fname string, nret int) int {
+// callMethod calls methodName on the ud object, pushing the function, ud, and args on the stack for the new call
+func callMethod(L *lua.LState, ud *lua.LUserData, methodName string, nret int) int {
 	top := L.GetTop()
-	f := L.GetField(o, fname)
+	f := L.GetField(ud, methodName)
 	L.Push(f)
-	L.Push(o)
+	L.Push(ud)
 	for i := 0; i < top; i++ {
 		L.Push(L.Get(- top - 2))
 	}
@@ -141,38 +148,61 @@ func callMethod(L *lua.LState, o *lua.LUserData, fname string, nret int) int {
 	return nret
 }
 
-func (l *LuaSpec) init() error {
-	json.Preload(l.L)
-	registerMetaSpecType(l.L)
-	ud := metaSpecToLua(l.L, l.MetaSpec)
-	meta := l.L.RegisterModule("meta", map[string]lua.LGFunction{
-		"get": func(L *lua.LState) int {
-			return callMethod(L, ud, "get", 1)
-		},
-		"set": func(L *lua.LState) int {
-			return callMethod(L, ud, "set", 0)
-		},
-		"dump": func(L *lua.LState) int {
-			return callMethod(L, ud, "dump", 1)
-		},
-		"undump": func(L *lua.LState) int {
-			return callMethod(L, ud, "undump", 0)
-		},
+// callMethodLGFunction returns a lua.LGFunction that calls methodName on the ud object
+func callMethodLGFunction(ud *lua.LUserData, methodName string, nret int) lua.LGFunction {
+	return func(L *lua.LState) int {
+		return callMethod(L, ud, methodName, nret)
+	}
+}
+
+// initState initializes the state |L|.
+func (l *LuaSpec) initState(L *lua.LState) error {
+	// Preload the json library
+	json.Preload(L)
+
+	// Register the MetaSpec TypeMetatable
+	registerMetaSpecType(L)
+
+	// Create a lua object for our MetaSpec
+	ud := metaSpecToLua(L, l.MetaSpec)
+
+	// Register methods on global "meta" that call the lua MetaData object
+	meta := L.RegisterModule("meta", map[string]lua.LGFunction{
+		"get":    callMethodLGFunction(ud, "get", 1),
+		"set":    callMethodLGFunction(ud, "set", 0),
+		"dump":   callMethodLGFunction(ud, "dump", 1),
+		"undump": callMethodLGFunction(ud, "undump", 0),
 	})
-	l.L.SetField(meta, "global", ud)
+
+	// Register our lua MetaSpec as a field "spec". calling meta.get("key") is identical to meta.spec:get("key")
+	L.SetField(meta, "spec", ud)
+
+	// No error
 	return nil
 }
 
-func (l *LuaSpec) Run() error {
+// Do invokes either DoFile if EvaluateFile is set otherwise DoString.
+func (l *LuaSpec) Do() error {
+	// Every call will use the gopher-json library to serialize between lua and go, ensure JSONValue is on.
 	l.MetaSpec.JSONValue = true
 
+	// Create a lua state valid for this function call
 	L := lua.NewState()
 	defer L.Close()
 
-	l.L = L
-	if err := l.init(); err != nil {
+	// Initialize the state with json package and our methods and globals.
+	if err := l.initState(L); err != nil {
 		return err
 	}
 
-	return L.DoFile(l.EvaluateFile)
+	// Do the right thing
+	if l.EvaluateFile != "" {
+		return L.DoFile(l.EvaluateFile)
+	}
+	if l.EvaluateString != "" {
+		return L.DoString(l.EvaluateString)
+	}
+
+	// Didn't find anything to do; report error
+	return fmt.Errorf("one of EvaluateFile or EvaluateString must be non-empty")
 }
