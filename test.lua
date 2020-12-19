@@ -41,3 +41,6 @@ end
 assert(meta.get("missing") == nil)
 assert(inc("missing") == 1)
 assert(inc("missing") == 2)
+
+-- test dump
+assert(meta.dump())

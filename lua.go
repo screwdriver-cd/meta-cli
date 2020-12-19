@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Shopify/go-lua"
 	"github.com/sirupsen/logrus"
@@ -39,10 +40,22 @@ func (l *LuaSpec) setCmd(args ...string) (interface{}, error) {
 	return nil, l.Set(args[0], args[1])
 }
 
-func (l *LuaSpec) pushList(L *lua.State, res []string) {
-	L.CreateTable(len(res), 0)
-	for i, s := range res {
-		L.PushString(s)
+func (l *LuaSpec) dumpCmd(args ...string) (interface{}, error) {
+	data, err := l.GetData()
+	if err != nil {
+		return nil, err
+	}
+	var jsonData interface{}
+	if err = json.Unmarshal(data, &jsonData); err != nil {
+		return nil, err
+	}
+	return jsonData, nil
+}
+
+func (l *LuaSpec) pushList(L *lua.State, list []interface{}) {
+	L.CreateTable(len(list), 0)
+	for i, elem := range list {
+		l.push(L, elem)
 		L.RawSetInt(-2, i+1)
 	}
 }
@@ -51,15 +64,34 @@ func (l *LuaSpec) pushMap(L *lua.State, res map[string]interface{}) {
 	L.CreateTable(0, len(res))
 	for k, v := range res {
 		L.PushString(k)
-		switch v := v.(type) {
-		case int64:
-			L.PushInteger(int(v))
-		case string:
-			L.PushString(v)
-		case map[string]interface{}:
-			l.pushMap(L, v)
-		}
+		l.push(L, v)
 		L.RawSet(-3)
+	}
+}
+
+func (l *LuaSpec) push(L *lua.State, elem interface{}) {
+	switch res := elem.(type) {
+	case bool:
+		L.PushBoolean(res)
+	case []byte:
+		L.PushString(string(res))
+	case string:
+		L.PushString(res)
+	case []interface{}:
+		l.pushList(L, res)
+	case map[string]interface{}:
+		l.pushMap(L, res)
+	case int:
+		L.PushInteger(res)
+	case float32:
+		L.PushNumber(float64(res))
+	case float64:
+		L.PushNumber(res)
+	case nil:
+		L.PushNil()
+	default:
+		L.PushFString("elem of type %s is unsupported", fmt.Sprintf("%T", res))
+		L.Error()
 	}
 }
 
@@ -92,26 +124,7 @@ func (l *LuaSpec) execCmdInLuaScript(curCmd string) func(L *lua.State) int {
 			L.PushString(err.Error())
 			return 2
 		}
-		switch res := res.(type) {
-		case bool:
-			L.PushBoolean(res)
-		case []byte:
-			L.PushString(string(res))
-		case string:
-			L.PushString(res)
-		case []string:
-			l.pushList(L, res)
-		case map[string]interface{}:
-			l.pushMap(L, res)
-		case int:
-			L.PushInteger(res)
-		case nil:
-			L.PushNil()
-		default:
-			L.PushFString("The type of result returned(%s) from command '%s' with args %s is unsupported",
-				fmt.Sprintf("%T", res), curCmd, fmt.Sprint(args))
-			L.Error()
-		}
+		l.push(L, res)
 		return 1
 	}
 }
@@ -156,8 +169,9 @@ func (l *LuaSpec) initLua() error {
 	//l.MetaSpec.JSONValue = true
 	l.vm = lua.NewState()
 	l.cmdMap = map[string]Cmd{
-		"get": l.getCmd,
-		"set": l.setCmd,
+		"get":  l.getCmd,
+		"set":  l.setCmd,
+		"dump": l.dumpCmd,
 	}
 	lua.OpenLibraries(l.vm)
 	return l.injectAPI()
