@@ -508,6 +508,9 @@ func main() {
 	luaSpec := LuaSpec{
 		MetaSpec: &metaSpec,
 	}
+	gluaSpec := GLuaSpec{
+		MetaSpec: &metaSpec,
+	}
 	loglevel := logrus.GetLevel().String()
 
 	app := cli.NewApp()
@@ -556,6 +559,11 @@ func main() {
 		Name:        "evaluate, e",
 		Usage:       "lua script to evaluate",
 		Destination: &luaSpec.EvaluateFile,
+	}
+	gEvaluateFileFlag := cli.StringFlag{
+		Name:        "evaluate, e",
+		Usage:       "lua script to evaluate",
+		Destination: &gluaSpec.EvaluateFile,
 	}
 	sdTokenFlag := cli.StringFlag{
 		Name:        "sd-token, t",
@@ -716,6 +724,20 @@ func main() {
 				return luaSpec.Run()
 			},
 			Flags: []cli.Flag{jsonValueFlag, evaluateFileFlag},
+		},
+		{
+			Name:  "glua",
+			Usage: "Run a gopher-lua script",
+			Action: func(c *cli.Context) error {
+				// Ensure that the CLI is concurrency safe.
+				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
+				if err := flocker.Lock(); err != nil {
+					failureExit(err)
+				}
+				defer func() { _ = flocker.Unlock() }()
+				return gluaSpec.Run()
+			},
+			Flags: []cli.Flag{jsonValueFlag, gEvaluateFileFlag},
 		},
 	}
 

@@ -155,6 +155,26 @@ func (l *LuaSpec) metaAPI(L *lua.State) int {
 
 	return 1
 }
+func (l *LuaSpec) installLunaRocks() error {
+	inputs := map[string]string{
+		"lunajson.encoder": "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson/encoder.lua",
+		"lunajson.decoder": "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson/decoder.lua",
+		"lunajson.sax":     "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson/sax.lua",
+		"lunajson":         "/usr/local/Cellar/luarocks/3.5.0/share/lua/5.4/lunajson.lua",
+	}
+	for k, v := range inputs {
+		lua.Require(l.State, k, func(state *lua.State) int {
+			err := lua.LoadFile(l.State, v, "text")
+			if err != nil {
+				l.PushFString(err.Error())
+				l.Error()
+			}
+			l.Call(0, 1)
+			return 1
+		}, true)
+	}
+	return nil
+}
 
 func (l *LuaSpec) initLua() error {
 	//metaSpec := *l.MetaSpec
@@ -168,7 +188,7 @@ func (l *LuaSpec) initLua() error {
 	}
 	lua.OpenLibraries(l.State)
 	lua.Require(l.State, "meta", l.metaAPI, true)
-	return nil
+	return l.installLunaRocks()
 }
 
 func (l *LuaSpec) Run() error {
