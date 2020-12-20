@@ -109,4 +109,7 @@ assert(getmetatable(dump).spec, string.format("getmetatable(dump).spec=%s", getm
 assert(meta.spec == getmetatable(dump).spec)
 
 -- test undumping a plain table
-meta.undump({ foo = "bar" })
+local ran, errorMessage = pcall(function() meta.undump({ foo = "bar" }) end)
+assert(not ran)
+assert(errorMessage:find("(userdata expected, got nil)"),
+    string.format("errorMsg=%s", errorMsg))
