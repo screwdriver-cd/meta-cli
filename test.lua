@@ -111,5 +111,5 @@ assert(meta.spec == getmetatable(dump).spec)
 -- test undumping a plain table
 local ran, errorMessage = pcall(function() meta.undump({ foo = "bar" }) end)
 assert(not ran)
-assert(errorMessage:find("(userdata expected, got nil)"),
-    string.format("errorMsg=%s", errorMsg))
+assert(errorMessage:find("(object passed to undump must have been dumped by same spec)"),
+    string.format("errorMsg=%s", errorMessage))

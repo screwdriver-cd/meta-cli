@@ -102,10 +102,7 @@ func metaSpecUndump(L *lua.LState) int {
 	decoded := L.CheckAny(2)
 
 	// Check that the argument passed for undumping was created with this meta instance.
-	L.Push(L.GetMetaField(decoded, "spec"))
-	decodedSpec := checkMetaSpec(L, -1)
-	L.Pop(1)
-	if decodedSpec != meta {
+	if !L.Equal(L.Get(1), L.GetMetaField(decoded, "spec")) {
 		L.ArgError(2, "object passed to undump must have been dumped by same spec")
 		return 0
 	}
