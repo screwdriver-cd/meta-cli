@@ -90,4 +90,20 @@ assert(meta.spec.LastSuccessfulMetaRequest.SdToken == "543",
 -- test that JSONValue cannot be set
 local ran, errorMsg = pcall(function() meta.spec.JSONValue = false end)
 assert(not ran)
-assert(errorMsg:find("(JSONValue cannot be set)") ~= nil, string.format("errorMsg=%s", errorMsg))
+assert(errorMsg:find("(JSONValue cannot be set)"), string.format("errorMsg=%s", errorMsg))
+
+-- test enforcement of undump matching dump
+-- undump of dump is allowed
+local ran, errorMessage = pcall(function() meta.undump(meta.dump()) end)
+assert(ran)
+assert(not errorMessage)
+-- undump of cloned dump is not allowed
+local ran, errorMessage = pcall(function() meta.undump(meta.clone():dump()) end)
+assert(not ran)
+assert(errorMessage:find("(object passed to undump must have been dumped by same spec)"),
+    string.format("errorMsg=%s", errorMsg))
+-- Ensure that the spec metatable doesn't leak into the dumped object
+local dump = meta.dump()
+assert(not dump.spec, string.format("dump.spec=%s", dump.spec))
+assert(getmetatable(dump).spec, string.format("getmetatable(dump).spec=%s", getmetatable(dump).spec))
+assert(meta.spec == getmetatable(dump).spec)

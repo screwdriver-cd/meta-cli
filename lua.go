@@ -82,6 +82,12 @@ func metaSpecDump(L *lua.LState) int {
 		L.RaiseError(err.Error())
 		return 0
 	}
+
+	// Add a metatable with spec referring to the spec, which dumped this
+	mt := L.CreateTable(0, 1)
+	mt.RawSetString("spec", L.Get(1))
+	L.SetMetatable(decoded, mt)
+
 	L.Push(decoded)
 	return 1
 }
@@ -93,7 +99,18 @@ func metaSpecUndump(L *lua.LState) int {
 		L.RaiseError("Require 1 args, but %d were passed", L.GetTop()-1)
 		return 0
 	}
-	data, err := json.Encode(L.CheckAny(2))
+	decoded := L.CheckAny(2)
+
+	// Check that the argument passed for undumping was created with this meta instance.
+	L.Push(L.GetMetaField(decoded, "spec"))
+	decodedSpec := checkMetaSpec(L, -1)
+	L.Pop(1)
+	if decodedSpec != meta {
+		L.ArgError(2, "object passed to undump must have been dumped by same spec")
+		return 0
+	}
+
+	data, err := json.Encode(decoded)
 	if err != nil {
 		L.RaiseError(err.Error())
 		return 0
