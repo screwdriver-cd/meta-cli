@@ -132,3 +132,7 @@ assert(ran)
 assert(not errorMessage, string.format("errorMsg=%s", errorMessage))
 local workaround = meta.get("workaround")
 assert(workaround == "achievement unlocked!", string.format("workaround=%s", workaround))
+
+-- test metaFilePath works
+assert(meta.metaFilePath())
+assert(meta.metaFilePath() == meta.spec:metaFilePath())

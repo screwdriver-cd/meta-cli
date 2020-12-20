@@ -23,6 +23,18 @@ const (
 	luaLastSuccessfulMetaRequestTypeName = "LastSuccessfulMetaRequest"
 )
 
+// metaSpecMetaFilePath calls MetaFilePath()
+func metaSpecMetaFilePath(L *lua.LState) int {
+	meta := checkMetaSpec(L, 1)
+	if L.GetTop() != 1 {
+		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
+		return 0
+	}
+	metaFilePath := meta.MetaFilePath()
+	L.Push(lua.LString(metaFilePath))
+	return 1
+}
+
 // metaSpecGet(key) returns json.decode(meta.Get(key))
 func metaSpecGet(L *lua.LState) int {
 	meta := checkMetaSpec(L, 1)
@@ -198,11 +210,12 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 
 	// methods - will return these from __index func in default case; set this way because SetFuncs wraps raw funcs.
 	funcs := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-		"get":    metaSpecGet,
-		"set":    metaSpecSet,
-		"dump":   metaSpecDump,
-		"undump": metaSpecUndump,
-		"clone":  metaSpecClone,
+		"get":          metaSpecGet,
+		"set":          metaSpecSet,
+		"dump":         metaSpecDump,
+		"undump":       metaSpecUndump,
+		"clone":        metaSpecClone,
+		"metaFilePath": metaSpecMetaFilePath,
 	})
 
 	// Get fields
@@ -344,11 +357,12 @@ func (l *LuaSpec) initState(L *lua.LState) error {
 
 	// Register methods on global "meta" that call the lua MetaData object
 	meta := L.RegisterModule("meta", map[string]lua.LGFunction{
-		"get":    callMethodLGFunction(ud, "get", 1),
-		"set":    callMethodLGFunction(ud, "set", 0),
-		"dump":   callMethodLGFunction(ud, "dump", 1),
-		"undump": callMethodLGFunction(ud, "undump", 0),
-		"clone":  callMethodLGFunction(ud, "clone", 1),
+		"get":          callMethodLGFunction(ud, "get", 1),
+		"set":          callMethodLGFunction(ud, "set", 0),
+		"dump":         callMethodLGFunction(ud, "dump", 1),
+		"undump":       callMethodLGFunction(ud, "undump", 0),
+		"clone":        callMethodLGFunction(ud, "clone", 1),
+		"metaFilePath": callMethodLGFunction(ud, "metaFilePath", 1),
 	})
 
 	// Register our lua MetaSpec as a field "spec". calling meta.get("key") is identical to meta.spec:get("key")
