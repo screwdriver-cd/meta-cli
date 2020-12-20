@@ -90,4 +90,4 @@ assert(meta.spec.LastSuccessfulMetaRequest.SdToken == "543",
 -- test that JSONValue cannot be set
 local ran, errorMsg = pcall(function() meta.spec.JSONValue = false end)
 assert(not ran)
-assert(errorMsg:find("(JSONValue cannot be set)") > 0, errorMsg)
+assert(errorMsg:find("(JSONValue cannot be set)") ~= nil, string.format("errorMsg=%s", errorMsg))
