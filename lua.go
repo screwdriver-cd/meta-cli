@@ -122,13 +122,18 @@ func metaSpecClone(L *lua.LState) int {
 
 // registerLastSuccessfulMetaRequest registers LastSuccessfulMetaRequest type
 func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
+	// Create a new type metatable and add to global namespace
 	mt := L.NewTypeMetatable(luaLastSuccessfulMetaRequestTypeName)
 	L.SetGlobal(luaLastSuccessfulMetaRequestTypeName, mt)
+
+	// Static methods
 	L.SetField(mt, "new", L.NewFunction(func(state *lua.LState) int {
 		ret := new(fetch.LastSuccessfulMetaRequest)
 		L.Push(lastSuccessfulMetaRequestToLua(L, ret))
 		return 1
 	}))
+
+	// methods - will return these from __index func in default case; set this way because SetFuncs wraps raw funcs.
 	funcs := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
 		"clone": func(state *lua.LState) int {
 			old := checkLastSuccessfulMetaRequest(L,1)
@@ -137,6 +142,8 @@ func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 			return 1
 		},
 	})
+
+	// Get fields
 	L.SetField(mt, "__index", L.NewFunction(func(L *lua.LState) int {
 		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L,1)
 		k := L.CheckString(2)
@@ -148,10 +155,13 @@ func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 		case "DefaultSdPipelineID":
 			L.Push(lua.LNumber(lastSuccessfulMetaRequest.DefaultSdPipelineID))
 		default:
+			// If unknown field, delegate to the function map.
 			L.Push(L.GetField(funcs, k))
 		}
 		return 1
 	}))
+
+	// Set fields
 	L.SetField(mt, "__newindex", L.NewFunction(func(L *lua.LState) int {
 		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L,1)
 		k := L.CheckString(2)
@@ -167,6 +177,8 @@ func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 		}
 		return 0
 	}))
+
+	// Return the metadata
 	return mt
 }
 
@@ -175,7 +187,7 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 	mt := L.NewTypeMetatable(luaMetaSpecTypeName)
 	L.SetGlobal(luaMetaSpecTypeName, mt)
 
-	// methods
+	// methods - will return these from __index func in default case; set this way because SetFuncs wraps raw funcs.
 	funcs := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
 		"get":    metaSpecGet,
 		"set":    metaSpecSet,
@@ -183,6 +195,8 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 		"undump": metaSpecUndump,
 		"clone":  metaSpecClone,
 	})
+
+	// Get fields
 	L.SetField(mt, "__index", L.NewFunction(func(state *lua.LState) int {
 		metaSpec := checkMetaSpec(L,1)
 		k := L.CheckString(2)
@@ -202,10 +216,13 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 		case "CacheLocal":
 			L.Push(lua.LBool(metaSpec.CacheLocal))
 		default:
+			// If unknown field, delegate to the function map.
 			L.Push(L.GetField(funcs, k))
 		}
 		return 1
 	}))
+
+	// Set fields
 	L.SetField(mt, "__newindex", L.NewFunction(func(state *lua.LState) int {
 		metaSpec := checkMetaSpec(L,1)
 		k := L.CheckString(2)
@@ -228,6 +245,8 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 		}
 		return 0
 	}))
+
+	// Return the metadata
 	return mt
 }
 
@@ -281,7 +300,7 @@ func callMethod(L *lua.LState, ud *lua.LUserData, methodName string, nret int) i
 	return nret
 }
 
-// callMethodLGFunction returns a lua.LGFunction that calls methodName on the ud object
+// callMethodLGFunction returns a lua.LGFunction that calls methodName on the ud object (with ud in first arg)
 func callMethodLGFunction(ud *lua.LUserData, methodName string, nret int) lua.LGFunction {
 	return func(L *lua.LState) int {
 		return callMethod(L, ud, methodName, nret)
