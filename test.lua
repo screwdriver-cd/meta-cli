@@ -1,6 +1,6 @@
 -- luacheck: globals meta
 -- test starting key is empty
-foo, err = meta.get("foo")
+local foo, err = meta.get("foo")
 assert(err == nil)
 assert(foo == nil, foo)
 
@@ -12,7 +12,7 @@ assert(foo == "bar")
 
 -- test setting a variable to number and then getting and doing arithmetic works
 meta.set("num", 123)
-num, err = meta.get("num")
+local num, err = meta.get("num")
 assert(num + 2 == 125)
 assert(tonumber(num) == 123)
 
@@ -44,7 +44,7 @@ assert(inc("missing") == 2)
 
 -- test dump
 assert(meta.set("yowza", "abc") == nil)
-d, err = meta.dump()
+local d, err = meta.dump()
 assert(err == nil)
 json = require("json")
 print(json.encode(d))
@@ -64,3 +64,30 @@ assert(meta.get("table.foo") == myvals.foo)
 assert(meta.get("table.yada.yada") == myvals.yada.yada)
 assert(json.encode(meta.get("table")) == json.encode(myvals))
 
+-- test cloning & setting variables
+local m2 = meta.clone()
+assert(m2 ~= nil)
+assert(m2.MetaFile == "meta")
+m2.MetaFile = "meta2"
+assert(m2.MetaFile == "meta2")
+assert(m2.MetaSpace ~= "")
+assert(m2.MetaSpace ~= "/dev/null")
+m2.MetaSpace = "/dev/null"
+assert(m2.MetaSpace == "/dev/null")
+
+meta.spec.LastSuccessfulMetaRequest.SdToken = 123
+assert(meta.spec.LastSuccessfulMetaRequest.SdToken == "123",
+    string.format("SdToken=%s", meta.spec.LastSuccessfulMetaRequest.SdToken))
+local l2 = meta.spec.LastSuccessfulMetaRequest:clone()
+assert(l2.SdToken == "123")
+l2.SdToken = 543
+assert(l2.SdToken == "543")
+assert(meta.spec.LastSuccessfulMetaRequest.SdToken == "123")
+meta.spec.LastSuccessfulMetaRequest = l2
+assert(meta.spec.LastSuccessfulMetaRequest.SdToken == "543",
+    string.format("SdToken=%s", meta.spec.LastSuccessfulMetaRequest.SdToken))
+
+-- test that JSONValue cannot be set
+local ran, errorMsg = pcall(function() meta.spec.JSONValue = false end)
+assert(not ran)
+assert(errorMsg:find("(JSONValue cannot be set)") > 0, errorMsg)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/layeh/gopher-json"
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
-	"github.com/sirupsen/logrus"
 	"github.com/yuin/gopher-lua"
 	"io/ioutil"
 )
@@ -25,7 +24,7 @@ const (
 
 // metaSpecGet(key) returns json.decode(meta.Get(key))
 func metaSpecGet(L *lua.LState) int {
-	meta := checkMetaSpec(L)
+	meta := checkMetaSpec(L, 1)
 	if L.GetTop() != 2 {
 		L.RaiseError("Require 1 arg, but %d were passed", L.GetTop()-1)
 		return 0
@@ -46,7 +45,7 @@ func metaSpecGet(L *lua.LState) int {
 
 // metaSpecSet(key, value) performs meta.Set(key, json.encode(value))
 func metaSpecSet(L *lua.LState) int {
-	meta := checkMetaSpec(L)
+	meta := checkMetaSpec(L,1)
 	if L.GetTop() != 3 {
 		L.RaiseError("Require 2 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -67,7 +66,7 @@ func metaSpecSet(L *lua.LState) int {
 
 // metaSpecDump returns json.decode(meta.Dump())
 func metaSpecDump(L *lua.LState) int {
-	meta := checkMetaSpec(L)
+	meta := checkMetaSpec(L,1)
 	if L.GetTop() != 1 {
 		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -88,7 +87,7 @@ func metaSpecDump(L *lua.LState) int {
 
 // metaSpecUndump(o) writes json.encode(o) to the meta.MetaFilePath()
 func metaSpecUndump(L *lua.LState) int {
-	meta := checkMetaSpec(L)
+	meta := checkMetaSpec(L,1)
 	if L.GetTop() != 2 {
 		L.RaiseError("Require 1 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -115,7 +114,7 @@ func metaSpecClone(L *lua.LState) int {
 
 	meta := L.GetGlobal("meta")
 	L.Push(L.GetField(meta, "spec"))
-	metaSpec := checkMetaSpec(L).CloneDefaultMeta()
+	metaSpec := checkMetaSpec(L, 1).CloneDefaultMeta()
 
 	L.Push(metaSpecToLua(L, metaSpec))
 	return 1
@@ -125,10 +124,23 @@ func metaSpecClone(L *lua.LState) int {
 func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 	mt := L.NewTypeMetatable(luaLastSuccessfulMetaRequestTypeName)
 	L.SetGlobal(luaLastSuccessfulMetaRequestTypeName, mt)
+	L.SetField(mt, "new", L.NewFunction(func(state *lua.LState) int {
+		ret := new(fetch.LastSuccessfulMetaRequest)
+		L.Push(lastSuccessfulMetaRequestToLua(L, ret))
+		return 1
+	}))
+	funcs := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
+		"clone": func(state *lua.LState) int {
+			old := checkLastSuccessfulMetaRequest(L,1)
+			ret := *old
+			L.Push(lastSuccessfulMetaRequestToLua(L, &ret))
+			return 1
+		},
+	})
 	L.SetField(mt, "__index", L.NewFunction(func(L *lua.LState) int {
-		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L)
-		s := L.CheckString(2)
-		switch s {
+		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L,1)
+		k := L.CheckString(2)
+		switch k {
 		case "SdToken":
 			L.Push(lua.LString(lastSuccessfulMetaRequest.SdToken))
 		case "SdAPIURL":
@@ -136,9 +148,24 @@ func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 		case "DefaultSdPipelineID":
 			L.Push(lua.LNumber(lastSuccessfulMetaRequest.DefaultSdPipelineID))
 		default:
-			return 0
+			L.Push(L.GetField(funcs, k))
 		}
 		return 1
+	}))
+	L.SetField(mt, "__newindex", L.NewFunction(func(L *lua.LState) int {
+		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L,1)
+		k := L.CheckString(2)
+		switch k {
+		case "SdToken":
+			lastSuccessfulMetaRequest.SdToken = L.CheckString(3)
+		case "SdAPIURL":
+			lastSuccessfulMetaRequest.SdAPIURL = L.CheckString(3)
+		case "DefaultSdPipelineID":
+			lastSuccessfulMetaRequest.DefaultSdPipelineID = L.CheckInt64(3)
+		default:
+			return 0
+		}
+		return 0
 	}))
 	return mt
 }
@@ -157,10 +184,9 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 		"clone":  metaSpecClone,
 	})
 	L.SetField(mt, "__index", L.NewFunction(func(state *lua.LState) int {
-		metaSpec := checkMetaSpec(L)
-		s := L.CheckString(2)
-		logrus.Debugf("t=%#v, s=%s, funcs=%T", metaSpec, s, funcs)
-		switch s {
+		metaSpec := checkMetaSpec(L,1)
+		k := L.CheckString(2)
+		switch k {
 		case "MetaSpace":
 			L.Push(lua.LString(metaSpec.MetaSpace))
 		case "SkipFetchNonexistentExternal":
@@ -176,9 +202,31 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 		case "CacheLocal":
 			L.Push(lua.LBool(metaSpec.CacheLocal))
 		default:
-			L.Push(L.GetField(funcs, s))
+			L.Push(L.GetField(funcs, k))
 		}
 		return 1
+	}))
+	L.SetField(mt, "__newindex", L.NewFunction(func(state *lua.LState) int {
+		metaSpec := checkMetaSpec(L,1)
+		k := L.CheckString(2)
+		switch k {
+		case "MetaSpace":
+			metaSpec.MetaSpace = L.CheckString(3)
+		case "SkipFetchNonexistentExternal":
+			metaSpec.SkipFetchNonexistentExternal = L.CheckBool(3)
+		case "MetaFile":
+			metaSpec.MetaFile = L.CheckString(3)
+		case "JSONValue":
+			L.ArgError(3, "JSONValue cannot be set")
+			return 0
+		case "SkipStoreExternal":
+			metaSpec.SkipStoreExternal = L.CheckBool(3)
+		case "LastSuccessfulMetaRequest":
+			metaSpec.LastSuccessfulMetaRequest = *checkLastSuccessfulMetaRequest(L,3)
+		case "CacheLocal":
+			metaSpec.CacheLocal = L.CheckBool(3)
+		}
+		return 0
 	}))
 	return mt
 }
@@ -200,8 +248,8 @@ func lastSuccessfulMetaRequestToLua(L *lua.LState, r *fetch.LastSuccessfulMetaRe
 }
 
 // checkMetaSpec like lua.LState.Check methods, this ensures the args is UserData and casts to *MetaSpec then returns it.
-func checkMetaSpec(L *lua.LState) *MetaSpec {
-	ud := L.CheckUserData(1)
+func checkMetaSpec(L *lua.LState, n int) *MetaSpec {
+	ud := L.CheckUserData(n)
 	if v, ok := ud.Value.(*MetaSpec); ok {
 		return v
 	}
@@ -211,8 +259,8 @@ func checkMetaSpec(L *lua.LState) *MetaSpec {
 
 // checkLastSuccessfulMetaRequest like lua.LState.Check methods, this ensures the args is UserData and casts to
 // *fetch.LastSuccessfulMetaRequest then returns it.
-func checkLastSuccessfulMetaRequest(L *lua.LState) *fetch.LastSuccessfulMetaRequest {
-	ud := L.CheckUserData(1)
+func checkLastSuccessfulMetaRequest(L *lua.LState, n int) *fetch.LastSuccessfulMetaRequest {
+	ud := L.CheckUserData(n)
 	if v, ok := ud.Value.(*fetch.LastSuccessfulMetaRequest); ok {
 		return v
 	}
