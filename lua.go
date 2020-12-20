@@ -298,7 +298,7 @@ func checkMetaSpec(L *lua.LState, n int) *MetaSpec {
 	if v, ok := ud.Value.(*MetaSpec); ok {
 		return v
 	}
-	L.ArgError(1, "MetaSpec expected")
+	L.ArgError(n, "MetaSpec expected")
 	return nil
 }
 
@@ -309,7 +309,7 @@ func checkLastSuccessfulMetaRequest(L *lua.LState, n int) *fetch.LastSuccessfulM
 	if v, ok := ud.Value.(*fetch.LastSuccessfulMetaRequest); ok {
 		return v
 	}
-	L.ArgError(1, "LastSuccessfulMetaRequest expected")
+	L.ArgError(n, "LastSuccessfulMetaRequest expected")
 	return nil
 }
 

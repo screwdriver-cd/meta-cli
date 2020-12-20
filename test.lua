@@ -107,3 +107,6 @@ local dump = meta.dump()
 assert(not dump.spec, string.format("dump.spec=%s", dump.spec))
 assert(getmetatable(dump).spec, string.format("getmetatable(dump).spec=%s", getmetatable(dump).spec))
 assert(meta.spec == getmetatable(dump).spec)
+
+-- test undumping a plain table
+meta.undump({ foo = "bar" })
