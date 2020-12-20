@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/layeh/gopher-json"
+	"github.com/sirupsen/logrus"
 	"github.com/yuin/gopher-lua"
 	"io/ioutil"
 )
@@ -161,12 +162,37 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 	L.SetGlobal(luaMetaSpecTypeName, mt)
 
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
+	funcs := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
 		"get":           metaSpecGet,
 		"set":           metaSpecSet,
 		"dump":          metaSpecDump,
 		"undump":        metaSpecUndump,
 		"cloneOverride": metaSpecCloneOverride,
+	})
+	L.SetField(mt, "__index", L.NewFunction(func(state *lua.LState) int {
+		metaSpec := checkMetaSpec(L)
+		s := L.CheckString(2)
+		logrus.Debugf("t=%#v, s=%s, funcs=%T", metaSpec, s, funcs)
+		switch s {
+		case "MetaSpace":
+			L.Push(lua.LString(metaSpec.MetaSpace))
+		case "SkipFetchNonexistentExternal":
+			L.Push(lua.LBool(metaSpec.SkipFetchNonexistentExternal))
+		case "MetaFile":
+			L.Push(lua.LString(metaSpec.MetaFile))
+		case "JSONValue":
+			L.Push(lua.LBool(metaSpec.JSONValue))
+		case "SkipStoreExternal":
+			L.Push(lua.LBool(metaSpec.SkipStoreExternal))
+		case "LastSuccessfulMetaRequest":
+			// TODO(scr): register this type and return it
+			return 0
+		case "CacheLocal":
+			L.Push(lua.LBool(metaSpec.CacheLocal))
+		default:
+			L.Push(L.GetField(funcs, s))
+		}
+		return 1
 	}))
 	return mt
 }
