@@ -45,7 +45,7 @@ func metaSpecGet(L *lua.LState) int {
 
 // metaSpecSet(key, value) performs meta.Set(key, json.encode(value))
 func metaSpecSet(L *lua.LState) int {
-	meta := checkMetaSpec(L,1)
+	meta := checkMetaSpec(L, 1)
 	if L.GetTop() != 3 {
 		L.RaiseError("Require 2 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -66,7 +66,7 @@ func metaSpecSet(L *lua.LState) int {
 
 // metaSpecDump returns json.decode(meta.Dump())
 func metaSpecDump(L *lua.LState) int {
-	meta := checkMetaSpec(L,1)
+	meta := checkMetaSpec(L, 1)
 	if L.GetTop() != 1 {
 		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -87,7 +87,7 @@ func metaSpecDump(L *lua.LState) int {
 
 // metaSpecUndump(o) writes json.encode(o) to the meta.MetaFilePath()
 func metaSpecUndump(L *lua.LState) int {
-	meta := checkMetaSpec(L,1)
+	meta := checkMetaSpec(L, 1)
 	if L.GetTop() != 2 {
 		L.RaiseError("Require 1 args, but %d were passed", L.GetTop()-1)
 		return 0
@@ -105,18 +105,17 @@ func metaSpecUndump(L *lua.LState) int {
 	return 0
 }
 
-// metaSpecClone(o) clones the global spec
+// metaSpecClone(o) clones the spec
 func metaSpecClone(L *lua.LState) int {
 	if L.GetTop() != 1 {
 		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
 		return 0
 	}
 
-	meta := L.GetGlobal("meta")
-	L.Push(L.GetField(meta, "spec"))
-	metaSpec := checkMetaSpec(L, 1).CloneDefaultMeta()
+	oldSpec := checkMetaSpec(L, 1)
+	newSpec := oldSpec.CloneDefaultMeta()
 
-	L.Push(metaSpecToLua(L, metaSpec))
+	L.Push(metaSpecToLua(L, newSpec))
 	return 1
 }
 
@@ -135,17 +134,12 @@ func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 
 	// methods - will return these from __index func in default case; set this way because SetFuncs wraps raw funcs.
 	funcs := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-		"clone": func(state *lua.LState) int {
-			old := checkLastSuccessfulMetaRequest(L,1)
-			ret := *old
-			L.Push(lastSuccessfulMetaRequestToLua(L, &ret))
-			return 1
-		},
+		"clone": lastSuccessfulMetaRequestClone,
 	})
 
 	// Get fields
 	L.SetField(mt, "__index", L.NewFunction(func(L *lua.LState) int {
-		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L,1)
+		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L, 1)
 		k := L.CheckString(2)
 		switch k {
 		case "SdToken":
@@ -163,7 +157,7 @@ func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 
 	// Set fields
 	L.SetField(mt, "__newindex", L.NewFunction(func(L *lua.LState) int {
-		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L,1)
+		lastSuccessfulMetaRequest := checkLastSuccessfulMetaRequest(L, 1)
 		k := L.CheckString(2)
 		switch k {
 		case "SdToken":
@@ -198,7 +192,7 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 
 	// Get fields
 	L.SetField(mt, "__index", L.NewFunction(func(state *lua.LState) int {
-		metaSpec := checkMetaSpec(L,1)
+		metaSpec := checkMetaSpec(L, 1)
 		k := L.CheckString(2)
 		switch k {
 		case "MetaSpace":
@@ -224,7 +218,7 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 
 	// Set fields
 	L.SetField(mt, "__newindex", L.NewFunction(func(state *lua.LState) int {
-		metaSpec := checkMetaSpec(L,1)
+		metaSpec := checkMetaSpec(L, 1)
 		k := L.CheckString(2)
 		switch k {
 		case "MetaSpace":
@@ -239,7 +233,7 @@ func registerMetaSpecType(L *lua.LState) *lua.LTable {
 		case "SkipStoreExternal":
 			metaSpec.SkipStoreExternal = L.CheckBool(3)
 		case "LastSuccessfulMetaRequest":
-			metaSpec.LastSuccessfulMetaRequest = *checkLastSuccessfulMetaRequest(L,3)
+			metaSpec.LastSuccessfulMetaRequest = *checkLastSuccessfulMetaRequest(L, 3)
 		case "CacheLocal":
 			metaSpec.CacheLocal = L.CheckBool(3)
 		}
@@ -258,12 +252,25 @@ func metaSpecToLua(L *lua.LState, spec *MetaSpec) *lua.LUserData {
 	return ud
 }
 
-// lastSuccessfulMetaRequestToLua converts the object to a lua.LUserData by attaching it to the Value and setting its metatable.
-func lastSuccessfulMetaRequestToLua(L *lua.LState, r *fetch.LastSuccessfulMetaRequest) *lua.LUserData {
+// lastSuccessfulMetaRequestToLua converts request to lua.LUserData, attaching it to the Value and setting metatable.
+func lastSuccessfulMetaRequestToLua(L *lua.LState, request *fetch.LastSuccessfulMetaRequest) *lua.LUserData {
 	ud := L.NewUserData()
-	ud.Value = r
+	ud.Value = request
 	L.SetMetatable(ud, L.GetTypeMetatable(luaLastSuccessfulMetaRequestTypeName))
 	return ud
+}
+
+// lastSuccessfulMetaRequestClone clones the fetch.LastSuccessfulMetaRequest
+func lastSuccessfulMetaRequestClone(L *lua.LState) int {
+	if L.GetTop() != 1 {
+		L.RaiseError("Require 0 arg, but %d were passed", L.GetTop()-1)
+		return 0
+	}
+
+	oldRequest := checkLastSuccessfulMetaRequest(L, 1)
+	newRequest := *oldRequest
+	L.Push(lastSuccessfulMetaRequestToLua(L, &newRequest))
+	return 1
 }
 
 // checkMetaSpec like lua.LState.Check methods, this ensures the args is UserData and casts to *MetaSpec then returns it.
