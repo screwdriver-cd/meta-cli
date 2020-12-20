@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/layeh/gopher-json"
-	"github.com/screwdriver-cd/meta-cli/internal/fetch"
-	"github.com/yuin/gopher-lua"
 	"io/ioutil"
+
+	json "github.com/layeh/gopher-json"
+	"github.com/screwdriver-cd/meta-cli/internal/fetch"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type (
