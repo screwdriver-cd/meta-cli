@@ -270,6 +270,7 @@ func lastSuccessfulMetaRequestClone(L *lua.LState) int {
 
 	oldRequest := checkLastSuccessfulMetaRequest(L, 1)
 	newRequest := *oldRequest
+
 	L.Push(lastSuccessfulMetaRequestToLua(L, &newRequest))
 	return 1
 }
