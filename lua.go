@@ -106,7 +106,7 @@ func metaSpecUndump(L *lua.LState) int {
 	return 0
 }
 
-// metaSpecClone(o) clones the spec
+// metaSpecClone(spec) clones the spec
 func metaSpecClone(L *lua.LState) int {
 	if L.GetTop() != 1 {
 		L.RaiseError("Require 0 args, but %d were passed", L.GetTop()-1)
@@ -261,7 +261,7 @@ func lastSuccessfulMetaRequestToLua(L *lua.LState, request *fetch.LastSuccessful
 	return ud
 }
 
-// lastSuccessfulMetaRequestClone clones the fetch.LastSuccessfulMetaRequest
+// lastSuccessfulMetaRequestClone(request) clones the request
 func lastSuccessfulMetaRequestClone(L *lua.LState) int {
 	if L.GetTop() != 1 {
 		L.RaiseError("Require 0 arg, but %d were passed", L.GetTop()-1)
