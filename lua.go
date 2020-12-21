@@ -152,13 +152,6 @@ func registerLastSuccessfulMetaRequest(L *lua.LState) *lua.LTable {
 	mt := L.NewTypeMetatable(luaLastSuccessfulMetaRequestTypeName)
 	L.SetGlobal(luaLastSuccessfulMetaRequestTypeName, mt)
 
-	// Static methods
-	L.SetField(mt, "new", L.NewFunction(func(state *lua.LState) int {
-		ret := new(fetch.LastSuccessfulMetaRequest)
-		L.Push(lastSuccessfulMetaRequestToLua(L, ret))
-		return 1
-	}))
-
 	// methods - will return these from __index func in default case; set this way because SetFuncs wraps raw funcs.
 	funcs := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
 		"clone": lastSuccessfulMetaRequestClone,
