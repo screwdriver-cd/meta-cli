@@ -308,8 +308,9 @@ func (s *MetaSuite) TestSetMeta() {
 			sets: []set{
 				{"int", "10"},
 				{"float", "15.5"},
+				{"string", "50876e6"},
 			},
-			expected: `{"float":15.5,"int":10}`,
+			expected: `{"float":15.5,"int":10,"string":"50876e6"}`,
 		},
 		{
 			name:     "string",
