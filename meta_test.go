@@ -942,8 +942,14 @@ func (s *MetaSuite) TestMetaSpec_CachedGet() {
 
 func (s *MetaSuite) TestMetaSpec_Lua() {
 	l := LuaSpec{
-		MetaSpec:     &s.MetaSpec,
-		EvaluateFile: "test.lua",
+		MetaSpec: &s.MetaSpec,
 	}
-	s.Assert().NoError(l.Do())
+	s.Assert().NoError(l.Do("test.lua"))
+}
+
+func (s *MetaSuite) TestMetaSpec_Lua_Arg_Passing() {
+	l := LuaSpec{
+		MetaSpec: &s.MetaSpec,
+	}
+	s.Assert().NoError(l.Do("test-arg-passing.lua", "foo", "bar", "baz"))
 }

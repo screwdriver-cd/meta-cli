@@ -13,7 +13,6 @@ type (
 	LuaSpec struct {
 		// Inputs
 		MetaSpec       *MetaSpec
-		EvaluateFile   string
 		EvaluateString string
 	}
 )
@@ -365,8 +364,17 @@ func (l *LuaSpec) initState(L *lua.LState) error {
 	return nil
 }
 
+// Sets the arg variable with an offset in the case where there the first argument is not the script being executed.
+func setArg(L *lua.LState, offset int, args ...string) {
+	argTable := L.CreateTable(len(args), 0)
+	for i, arg := range args {
+		argTable.RawSetInt(i+offset, lua.LString(arg))
+	}
+	L.SetGlobal("arg", argTable)
+}
+
 // Do invokes either DoFile if EvaluateFile is set otherwise DoString.
-func (l *LuaSpec) Do() error {
+func (l *LuaSpec) Do(args ...string) error {
 	// Every call will use the gopher-json library to serialize between lua and go, ensure JSONValue is on.
 	l.MetaSpec.JSONValue = true
 
@@ -380,13 +388,14 @@ func (l *LuaSpec) Do() error {
 	}
 
 	// Do the right thing
-	if l.EvaluateFile != "" {
-		return L.DoFile(l.EvaluateFile)
-	}
 	if l.EvaluateString != "" {
+		setArg(L, 1, args...)
 		return L.DoString(l.EvaluateString)
 	}
-
+	if len(args) > 0 {
+		setArg(L, 0, args...)
+		return L.DoFile(args[0])
+	}
 	// Didn't find anything to do; report error
-	return fmt.Errorf("one of EvaluateFile or EvaluateString must be non-empty")
+	return fmt.Errorf("Either EvaluateString or at least one argument must be provided")
 }

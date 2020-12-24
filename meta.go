@@ -554,8 +554,8 @@ func main() {
 	}
 	evaluateFileFlag := cli.StringFlag{
 		Name:        "evaluate, E",
-		Usage:       "lua script to evaluate",
-		Destination: &luaSpec.EvaluateFile,
+		Usage:       "lua text to evaluate; when not set, the first argument is treated as a filename",
+		Destination: &luaSpec.EvaluateString,
 	}
 	sdTokenFlag := cli.StringFlag{
 		Name:        "sd-token, t",
@@ -713,13 +713,10 @@ func main() {
 					failureExit(err)
 				}
 				defer func() { _ = flocker.Unlock() }()
-				if c.NArg() == 1 {
-					luaSpec.EvaluateString = c.Args()[0]
+				if luaSpec.EvaluateString == "" && c.NArg() <= 0 {
+					return fmt.Errorf("lua requires either a string (with --evaluate/-E arg) or at least one arg")
 				}
-				if (luaSpec.EvaluateString != "") == (luaSpec.EvaluateFile != "") {
-					return fmt.Errorf("lua requires either a file (with --evaluate/-E arg) or a string arg")
-				}
-				return luaSpec.Do()
+				return luaSpec.Do(c.Args()...)
 			},
 			Flags: []cli.Flag{
 				evaluateFileFlag, externalFlag, skipFetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag,
