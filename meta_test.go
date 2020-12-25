@@ -953,3 +953,10 @@ func (s *MetaSuite) TestMetaSpec_Lua_Arg_Passing() {
 	}
 	s.Assert().NoError(l.Do("test-arg-passing.lua", "foo", "bar", "baz"))
 }
+
+func (s *MetaSuite) TestMetaSpec_Lua_Arg_Passing_Json() {
+	l := LuaSpec{
+		MetaSpec: &s.MetaSpec,
+	}
+	s.Assert().NoError(l.Do("test-arg-passing-json.lua", `{"foo": "bar", "bar": [1, 2, 3.45]}`))
+}
