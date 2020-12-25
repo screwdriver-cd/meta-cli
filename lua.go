@@ -366,7 +366,7 @@ func (l *LuaSpec) initState(L *lua.LState) error {
 
 // Sets the arg variable with an offset in the case where there the first argument is not the script being executed.
 func setArg(L *lua.LState, offset int, args ...string) {
-	argTable := L.CreateTable(len(args), 0)
+	argTable := L.CreateTable(len(args), 1)
 	for i, arg := range args {
 		argTable.RawSetInt(i+offset, lua.LString(arg))
 	}
