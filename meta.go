@@ -38,6 +38,7 @@ var (
 
 var metaKeyValidator = regexp.MustCompile(`^(\w+(-*\w+)*)+(((\[\]|\[(0|[1-9]\d*)\]))?(\.(\w+(-*\w+)*)+)*)*$`)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
+var isNumberRegExp = regexp.MustCompile(`^[+-]?(?:[0-9]*[.])?[0-9]+$`)
 
 // MetaSpec encapsulates the parameters usually from CLI so they are more readable and shareable than positional params.
 type MetaSpec struct {
@@ -447,16 +448,23 @@ func setMetaValueRecursive(key string, value string, previousMeta interface{}, j
 		}
 		return key, objectValue
 	}
-	// Value is int
-	i, err := strconv.Atoi(value)
-	if err == nil {
-		return key, i
+
+	// Value is number
+	isNumber := isNumberRegExp.MatchString(value)
+	if isNumber {
+		// Value is int
+		i, err := strconv.Atoi(value)
+		if err == nil {
+			return key, i
+		}
+
+		// Value is float
+		f, err := strconv.ParseFloat(value, 64)
+		if err == nil {
+			return key, f
+		}
 	}
-	// Value is float
-	f, err := strconv.ParseFloat(value, 64)
-	if err == nil {
-		return key, f
-	}
+
 	// Value is bool
 	b, err := strconv.ParseBool(value)
 	if err == nil {
