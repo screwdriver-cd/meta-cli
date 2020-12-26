@@ -12,8 +12,9 @@ import (
 type (
 	LuaSpec struct {
 		// Inputs
-		MetaSpec       *MetaSpec
-		EvaluateString string
+		MetaSpec         *MetaSpec
+		EvaluateString   string
+		EvaluateFunction lua.LGFunction
 	}
 )
 
@@ -391,6 +392,10 @@ func (l *LuaSpec) Do(args ...string) error {
 	if l.EvaluateString != "" {
 		setArg(L, 1, args...)
 		return L.DoString(l.EvaluateString)
+	}
+	if l.EvaluateFunction != nil {
+		setArg(L, 1, args...)
+		return L.GPCall(l.EvaluateFunction, lua.LNil)
 	}
 	if len(args) > 0 {
 		setArg(L, 0, args...)
