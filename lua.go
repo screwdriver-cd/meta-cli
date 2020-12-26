@@ -321,8 +321,8 @@ func callMethod(L *lua.LState, ud *lua.LUserData, methodName string, nret int) i
 	f := L.GetField(ud, methodName)
 	L.Push(f)
 	L.Push(ud)
-	for i := 0; i < top; i++ {
-		L.Push(L.Get(-top - 2))
+	for i := 1; i <= top; i++ {
+		L.Push(L.Get(i))
 	}
 	L.Call(top+1, nret)
 	return nret
