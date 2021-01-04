@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	libs "github.com/vadv/gopher-lua-libs"
+	"github.com/vadv/gopher-lua-libs/json"
 	"io/ioutil"
 
-	json "github.com/layeh/gopher-json"
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -48,7 +48,7 @@ func metaSpecGet(L *lua.LState) int {
 		L.RaiseError(err.Error())
 		return 0
 	}
-	jsonResponse, err := json.Decode(L, []byte(got))
+	jsonResponse, err := json.ValueDecode(L, []byte(got))
 	if err != nil {
 		L.RaiseError(err.Error())
 		return 0
@@ -65,7 +65,7 @@ func metaSpecSet(L *lua.LState) int {
 		return 0
 	}
 	value := L.CheckAny(3)
-	data, err := json.Encode(value)
+	data, err := json.ValueEncode(value)
 	if err != nil {
 		L.RaiseError(err.Error())
 		return 0
@@ -90,7 +90,7 @@ func metaSpecDump(L *lua.LState) int {
 		L.RaiseError(err.Error())
 		return 0
 	}
-	decoded, err := json.Decode(L, data)
+	decoded, err := json.ValueDecode(L, data)
 	if err != nil {
 		L.RaiseError(err.Error())
 		return 0
@@ -120,7 +120,7 @@ func metaSpecUndump(L *lua.LState) int {
 		return 0
 	}
 
-	data, err := json.Encode(decoded)
+	data, err := json.ValueEncode(decoded)
 	if err != nil {
 		L.RaiseError(err.Error())
 		return 0
