@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	libs "github.com/vadv/gopher-lua-libs"
 	"io/ioutil"
 
 	json "github.com/layeh/gopher-json"
@@ -338,8 +339,8 @@ func callMethodLGFunction(ud *lua.LUserData, methodName string, nret int) lua.LG
 
 // initState initializes the state |L|.
 func (l *LuaSpec) initState(L *lua.LState) error {
-	// Preload the json library
-	json.Preload(L)
+	// Preload the libs libraries
+	libs.Preload(L)
 
 	// Register the MetaSpec TypeMetatable
 	registerMetaSpecType(L)
