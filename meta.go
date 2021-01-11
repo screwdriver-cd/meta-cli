@@ -513,6 +513,9 @@ func main() {
 		MetaFile:                     defaultMetaFile,
 		JSONValue:                    false,
 	}
+	luaSpec := LuaSpec{
+		MetaSpec: &metaSpec,
+	}
 	loglevel := logrus.GetLevel().String()
 
 	app := cli.NewApp()
@@ -556,6 +559,11 @@ func main() {
 		Usage: "Treat value as json. When false, set values are treated as string; get is value-dependent " +
 			"and strings are not json-escaped",
 		Destination: &metaSpec.JSONValue,
+	}
+	evaluateFileFlag := cli.StringFlag{
+		Name:        "evaluate, E",
+		Usage:       "lua text to evaluate; when not set, the first argument is treated as a filename",
+		Destination: &luaSpec.EvaluateString,
 	}
 	sdTokenFlag := cli.StringFlag{
 		Name:        "sd-token, t",
@@ -702,6 +710,25 @@ func main() {
 				externalFlag, skipFetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag, sdAPIURLFlag,
 				sdPipelineIDFlag, skipStoreExternalFlag, cacheLocalFlag,
 			},
+		},
+		{
+			Name:  "lua",
+			Usage: "Run a lua script",
+			Action: func(c *cli.Context) error {
+				// Ensure that the CLI is concurrency safe.
+				flocker := flock.New(filepath.Join(metaSpec.MetaSpace, "meta.lock"))
+				if err := flocker.Lock(); err != nil {
+					failureExit(err)
+				}
+				defer func() { _ = flocker.Unlock() }()
+				if luaSpec.EvaluateString == "" && c.NArg() <= 0 {
+					return fmt.Errorf("lua requires either a string (with --evaluate/-E arg) or at least one arg")
+				}
+				return luaSpec.Do(c.Args()...)
+			},
+			Flags: []cli.Flag{
+				evaluateFileFlag, externalFlag, skipFetchNonexistentExternalFlag, jsonValueFlag, sdTokenFlag,
+				sdAPIURLFlag, sdPipelineIDFlag, skipStoreExternalFlag, cacheLocalFlag},
 		},
 	}
 
