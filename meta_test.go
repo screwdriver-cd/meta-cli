@@ -578,6 +578,7 @@ func (s *MetaSuite) TestValidateMetaKeyWithAccept() {
 		{`foo[1].bar-baz[2]`},
 		{`f-o-o[1].bar--baz[2]`},
 		{`1.2.3`},
+		{`foo.b-a-r:baz:1-2-3[2]`},
 	}
 
 	for _, tt := range tests {
