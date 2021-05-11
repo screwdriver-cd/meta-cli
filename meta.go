@@ -36,7 +36,7 @@ var (
 	date    = "unknown"
 )
 
-var metaKeyValidator = regexp.MustCompile(`^(\w+(-*\w+)*)+(((\[\]|\[(0|[1-9]\d*)\]))?(\.(\w+(-*\w+)*)+)*)*$`)
+var metaKeyValidator = regexp.MustCompile(`^(\w+([-:]*\w+)*)+(((\[\]|\[(0|[1-9]\d*)\]))?(\.(\w+([-:]*\w+)*)+)*)*$`)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 var isNumberRegExp = regexp.MustCompile(`^[+-]?(?:[0-9]*[.])?[0-9]+$`)
 
