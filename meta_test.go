@@ -26,6 +26,8 @@ const (
 	externalFilePath       = testDir + "/" + externalFile + ".json"
 	externalFile2          = "sd@123:has-sd"
 	externalFile2Path      = testDir + "/" + externalFile2 + ".json"
+	jobParamsComponentFile = "job-params-component"
+	jobParamsPublishFile   = "job-params-publish"
 	doesNotExistFile       = "woof"
 	mockHTTPDir            = "mockHttp"
 	jobsJSONFile           = "jobs.json"
@@ -226,10 +228,6 @@ func (s *MetaSuite) TestGetMeta() {
 			expected: `null`,
 		},
 		{
-			key:      `nu`,
-			expected: `null`,
-		},
-		{
 			key:      `notexist`,
 			desc:     `The key does not exist in meta.json`,
 			expected: `null`,
@@ -258,6 +256,83 @@ func (s *MetaSuite) TestGetMeta() {
 		})
 	}
 }
+
+func (s *MetaSuite) TestGetMetaJobParams() {
+    s.MetaSpec.MetaFile = jobParamsComponentFile
+	s.Require().NoError(s.CopyMockFile(jobParamsComponentFile))
+
+	tests := []struct {
+		key      string
+		desc     string
+		expected string
+		wantErr  bool
+	}{
+		{
+			key:      `parameters.color`,
+			expected: `red`,
+		},
+		{
+            key:      `parameters.car`,
+            expected: `audi`,
+        },
+        {
+            key:      `parameters.notexist`,
+            desc:     `The key does not exist in meta`,
+            expected: `null`,
+        },
+	}
+
+	for _, tt := range tests {
+		s.Run(niceName(tt.key, tt.desc), func() {
+			got, err := s.MetaSpec.Get(tt.key)
+			if tt.wantErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+			s.Assert().Equal(tt.expected, got)
+		})
+	}
+}
+
+func (s *MetaSuite) TestGetMetaJobParamsFallbackToPipelineParameters() {
+    s.MetaSpec.MetaFile = jobParamsPublishFile
+	s.Require().NoError(s.CopyMockFile(jobParamsPublishFile))
+
+	tests := []struct {
+		key      string
+		desc     string
+		expected string
+		wantErr  bool
+	}{
+		{
+			key:      `parameters.color`,
+			expected: `white`,
+		},
+		{
+            key:      `parameters.car`,
+            expected: `mercedes`,
+        },
+        {
+            key:      `parameters.notexist`,
+            desc:     `The key does not exist in meta neither at job level not at pipeline level`,
+            expected: `null`,
+        },
+	}
+
+	for _, tt := range tests {
+		s.Run(niceName(tt.key, tt.desc), func() {
+			got, err := s.MetaSpec.Get(tt.key)
+			if tt.wantErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+			s.Assert().Equal(tt.expected, got)
+		})
+	}
+}
+
 
 func (s *MetaSuite) TestGetMeta_json_object() {
 	s.MetaSpec.JSONValue = true
@@ -580,7 +655,7 @@ func (s *MetaSuite) TestValidateMetaKeyWithAccept() {
 		{`foo[1].bar-baz[2]`},
 		{`f-o-o[1].bar--baz[2]`},
 		{`1.2.3`},
-		{`foo.b-a-r:baz:1-2-3[2]`},
+		{`foo.b-a-r:baz:1-2-3[]`},
 	}
 
 	for _, tt := range tests {
