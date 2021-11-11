@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -67,7 +68,8 @@ func TestMetaSuite(t *testing.T) {
 
 func (s *MetaSuite) CopyMockFile(metaFile string) error {
 	metaFile = metaFile + ".json"
-	return shutil.CopyFile(filepath.Join(mockDir, metaFile), filepath.Join(testDir, metaFile), false)
+	return shutil.CopyFile(
+		filepath.Join(mockDir, url.QueryEscape(metaFile)), filepath.Join(testDir, metaFile), false)
 }
 
 func (s *MetaSuite) TestSetupDir() {
