@@ -258,7 +258,7 @@ func (s *MetaSuite) TestGetMeta() {
 }
 
 func (s *MetaSuite) TestGetMetaJobParams() {
-    s.MetaSpec.MetaFile = jobParamsComponentFile
+	s.MetaSpec.MetaFile = jobParamsComponentFile
 	s.Require().NoError(s.CopyMockFile(jobParamsComponentFile))
 
 	tests := []struct {
@@ -272,14 +272,14 @@ func (s *MetaSuite) TestGetMetaJobParams() {
 			expected: `red`,
 		},
 		{
-            key:      `parameters.car`,
-            expected: `audi`,
-        },
-        {
-            key:      `parameters.notexist`,
-            desc:     `The key does not exist in meta`,
-            expected: `null`,
-        },
+			key:      `parameters.car`,
+			expected: `audi`,
+		},
+		{
+			key:      `parameters.notexist`,
+			desc:     `The key does not exist in meta`,
+			expected: `null`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -296,7 +296,7 @@ func (s *MetaSuite) TestGetMetaJobParams() {
 }
 
 func (s *MetaSuite) TestGetMetaJobParamsFallbackToPipelineParameters() {
-    s.MetaSpec.MetaFile = jobParamsPublishFile
+	s.MetaSpec.MetaFile = jobParamsPublishFile
 	s.Require().NoError(s.CopyMockFile(jobParamsPublishFile))
 
 	tests := []struct {
@@ -310,14 +310,14 @@ func (s *MetaSuite) TestGetMetaJobParamsFallbackToPipelineParameters() {
 			expected: `white`,
 		},
 		{
-            key:      `parameters.car`,
-            expected: `mercedes`,
-        },
-        {
-            key:      `parameters.notexist`,
-            desc:     `The key does not exist in meta neither at job level not at pipeline level`,
-            expected: `null`,
-        },
+			key:      `parameters.car`,
+			expected: `mercedes`,
+		},
+		{
+			key:      `parameters.notexist`,
+			desc:     `The key does not exist in meta neither at job level not at pipeline level`,
+			expected: `null`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -332,7 +332,6 @@ func (s *MetaSuite) TestGetMetaJobParamsFallbackToPipelineParameters() {
 		})
 	}
 }
-
 
 func (s *MetaSuite) TestGetMeta_json_object() {
 	s.MetaSpec.JSONValue = true

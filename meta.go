@@ -223,18 +223,17 @@ func (m *MetaSpec) Get(key string) (string, error) {
 	}
 
 	if metaKeyIsParameterRegExp.MatchString(key) {
-	    // lookup for parameter at job level
-	    re := metaKeyIsParameterRegExp.FindStringSubmatch(key)
-	    jobName, _ := m.Get("build.jobName");
-	    jobParameterKey := fmt.Sprintf("parameters.%s.%s", jobName, re[1])
-	    _, result := fetchMetaValue(jobParameterKey, metaInterface)
+		// lookup for parameter at job level
+		jobName, _ := m.Get("build.jobName")
+		jobParameterKey := fmt.Sprintf("parameters.%s.%s", jobName, key)
+		_, result := fetchMetaValue(jobParameterKey, metaInterface)
 
-        // if parameter is not defined at job level, lookup at pipeline level
-	    if(result == nil) {
-	        _, result = fetchMetaValue(key, metaInterface)
-	    }
+		// if parameter is not defined at job level, lookup at pipeline level
+		if result == nil {
+			_, result = fetchMetaValue(key, metaInterface)
+		}
 
-	    return formatMetaValueForGet(result, m.JSONValue)
+		return formatMetaValueForGet(result, m.JSONValue)
 	}
 
 	_, result := fetchMetaValue(key, metaInterface)
@@ -379,7 +378,7 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 
 // format meta value based on the type
 func formatMetaValueForGet(result interface{}, jsonValue bool) (string, error) {
-    switch result.(type) {
+	switch result.(type) {
 	case map[string]interface{}, []interface{}:
 		resultJSON, _ := json.Marshal(result)
 		return fmt.Sprintf("%v", string(resultJSON)), nil
