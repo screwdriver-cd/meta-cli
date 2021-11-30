@@ -224,16 +224,14 @@ func (m *MetaSpec) Get(key string) (string, error) {
 
 	if metaKeyIsParameterRegExp.MatchString(key) {
 		// lookup for parameter at job level
+		re := metaKeyIsParameterRegExp.FindStringSubmatch(key)
 		jobName, _ := m.Get("build.jobName")
-		jobParameterKey := fmt.Sprintf("parameters.%s.%s", jobName, key)
-		_, result := fetchMetaValue(jobParameterKey, metaInterface)
+		_, result := fetchMetaValue(fmt.Sprintf("parameters.%s.%s", jobName, re[1]), metaInterface)
 
 		// if parameter is not defined at job level, lookup at pipeline level
-		if result == nil {
-			_, result = fetchMetaValue(key, metaInterface)
+		if result != nil {
+			return formatMetaValueForGet(result, m.JSONValue)
 		}
-
-		return formatMetaValueForGet(result, m.JSONValue)
 	}
 
 	_, result := fetchMetaValue(key, metaInterface)
