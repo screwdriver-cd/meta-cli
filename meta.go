@@ -39,6 +39,7 @@ var (
 var metaKeyValidator = regexp.MustCompile(`^(\w+([-:]*\w+)*)+(((\[\]|\[(0|[1-9]\d*)\]))?(\.(\w+([-:]*\w+)*)+)*)*$`)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 var isNumberRegExp = regexp.MustCompile(`^[+-]?(?:[0-9]*[.])?[0-9]+$`)
+var metaKeyIsParameterRegExp = regexp.MustCompile(`^parameters\.(.+)`)
 
 // MetaSpec encapsulates the parameters usually from CLI so they are more readable and shareable than positional params.
 type MetaSpec struct {
@@ -221,21 +222,20 @@ func (m *MetaSpec) Get(key string) (string, error) {
 		return "", err
 	}
 
-	_, result := fetchMetaValue(key, metaInterface)
+	if metaKeyIsParameterRegExp.MatchString(key) {
+		// lookup for parameter at job level
+		re := metaKeyIsParameterRegExp.FindStringSubmatch(key)
+		jobName, _ := m.Get("build.jobName")
+		_, result := fetchMetaValue(fmt.Sprintf("parameters.%s.%s", jobName, re[1]), metaInterface)
 
-	switch result.(type) {
-	case map[string]interface{}, []interface{}:
-		resultJSON, _ := json.Marshal(result)
-		return fmt.Sprintf("%v", string(resultJSON)), nil
-	case nil:
-		return "null", nil
-	default:
-		if m.JSONValue {
-			resultJSON, _ := json.Marshal(result)
-			return fmt.Sprintf("%v", string(resultJSON)), nil
+		// if parameter is not defined at job level, lookup at pipeline level
+		if result != nil {
+			return formatMetaValueForGet(result, m.JSONValue)
 		}
-		return fmt.Sprintf("%v", result), nil
 	}
+
+	_, result := fetchMetaValue(key, metaInterface)
+	return formatMetaValueForGet(result, m.JSONValue)
 }
 
 // Set sets metadata for the given key to the given value
@@ -372,6 +372,23 @@ func fetchMetaValue(key string, meta interface{}) (string, interface{}) {
 	}
 
 	return key, result
+}
+
+// format meta value based on the type
+func formatMetaValueForGet(result interface{}, jsonValue bool) (string, error) {
+	switch result.(type) {
+	case map[string]interface{}, []interface{}:
+		resultJSON, _ := json.Marshal(result)
+		return fmt.Sprintf("%v", string(resultJSON)), nil
+	case nil:
+		return "null", nil
+	default:
+		if jsonValue {
+			resultJSON, _ := json.Marshal(result)
+			return fmt.Sprintf("%v", string(resultJSON)), nil
+		}
+		return fmt.Sprintf("%v", result), nil
+	}
 }
 
 // setMetaValueRecursive updates meta
