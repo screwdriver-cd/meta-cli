@@ -40,6 +40,7 @@ var metaKeyValidator = regexp.MustCompile(`^(\w+([-:]*\w+)*)+(((\[\]|\[(0|[1-9]\
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 var isNumberRegExp = regexp.MustCompile(`^[+-]?(?:[0-9]*[.])?[0-9]+$`)
 var metaKeyIsParameterRegExp = regexp.MustCompile(`^parameters\.(.+)`)
+var parentJobNameRegExp = regexp.MustCompile(`^(PR-\d+:)?(.+)`)
 
 // MetaSpec encapsulates the parameters usually from CLI so they are more readable and shareable than positional params.
 type MetaSpec struct {
@@ -224,9 +225,11 @@ func (m *MetaSpec) Get(key string) (string, error) {
 
 	if metaKeyIsParameterRegExp.MatchString(key) {
 		// lookup for parameter at job level
-		re := metaKeyIsParameterRegExp.FindStringSubmatch(key)
+		param_re := metaKeyIsParameterRegExp.FindStringSubmatch(key)
 		jobName, _ := m.Get("build.jobName")
-		_, result := fetchMetaValue(fmt.Sprintf("parameters.%s.%s", jobName, re[1]), metaInterface)
+		job_re := parentJobNameRegExp.FindStringSubmatch(jobName)
+		fmt.Fprintln(os.Stderr, job_re[2])
+		_, result := fetchMetaValue(fmt.Sprintf("parameters.%s.%s", job_re[2], param_re[1]), metaInterface)
 
 		// if parameter is not defined at job level, lookup at pipeline level
 		if result != nil {

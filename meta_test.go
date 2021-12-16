@@ -18,20 +18,21 @@ import (
 )
 
 const (
-	testFile               = "meta"
-	testDir                = "./_test"
-	testFilePath           = testDir + "/" + testFile + ".json"
-	mockDir                = "./mock"
-	externalFile           = "sd@123:component"
-	externalFilePath       = testDir + "/" + externalFile + ".json"
-	externalFile2          = "sd@123:has-sd"
-	externalFile2Path      = testDir + "/" + externalFile2 + ".json"
-	jobParamsComponentFile = "job-params-component"
-	jobParamsPublishFile   = "job-params-publish"
-	doesNotExistFile       = "woof"
-	mockHTTPDir            = "mockHttp"
-	jobsJSONFile           = "jobs.json"
-	lastSuccessfulMetaFile = "lastSuccessfulMeta.json"
+	testFile                      = "meta"
+	testDir                       = "./_test"
+	testFilePath                  = testDir + "/" + testFile + ".json"
+	mockDir                       = "./mock"
+	externalFile                  = "sd@123:component"
+	externalFilePath              = testDir + "/" + externalFile + ".json"
+	externalFile2                 = "sd@123:has-sd"
+	externalFile2Path             = testDir + "/" + externalFile2 + ".json"
+	jobParamsComponentFile        = "job-params-component"
+	jobParamsPublishFile          = "job-params-publish"
+	jobParamsComponentPRBuildFile = "job-params-component-pr-build"
+	doesNotExistFile              = "woof"
+	mockHTTPDir                   = "mockHttp"
+	jobsJSONFile                  = "jobs.json"
+	lastSuccessfulMetaFile        = "lastSuccessfulMeta.json"
 )
 
 type MetaSuite struct {
@@ -260,6 +261,44 @@ func (s *MetaSuite) TestGetMeta() {
 func (s *MetaSuite) TestGetMetaJobParams() {
 	s.MetaSpec.MetaFile = jobParamsComponentFile
 	s.Require().NoError(s.CopyMockFile(jobParamsComponentFile))
+
+	tests := []struct {
+		key      string
+		desc     string
+		expected string
+		wantErr  bool
+	}{
+		{
+			key:      `parameters.color`,
+			expected: `red`,
+		},
+		{
+			key:      `parameters.car`,
+			expected: `audi`,
+		},
+		{
+			key:      `parameters.notexist`,
+			desc:     `The key does not exist in meta`,
+			expected: `null`,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(niceName(tt.key, tt.desc), func() {
+			got, err := s.MetaSpec.Get(tt.key)
+			if tt.wantErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+			s.Assert().Equal(tt.expected, got)
+		})
+	}
+}
+
+func (s *MetaSuite) TestGetMetaJobParamsForPRBuild() {
+	s.MetaSpec.MetaFile = jobParamsComponentPRBuildFile
+	s.Require().NoError(s.CopyMockFile(jobParamsComponentPRBuildFile))
 
 	tests := []struct {
 		key      string
