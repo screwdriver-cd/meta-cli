@@ -228,7 +228,6 @@ func (m *MetaSpec) Get(key string) (string, error) {
 		param_re := metaKeyIsParameterRegExp.FindStringSubmatch(key)
 		jobName, _ := m.Get("build.jobName")
 		job_re := parentJobNameRegExp.FindStringSubmatch(jobName)
-		fmt.Fprintln(os.Stderr, job_re[2])
 		_, result := fetchMetaValue(fmt.Sprintf("parameters.%s.%s", job_re[2], param_re[1]), metaInterface)
 
 		// if parameter is not defined at job level, lookup at pipeline level
