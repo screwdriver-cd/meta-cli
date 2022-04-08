@@ -1,6 +1,6 @@
 
 shared:
-    image: golang
+    image: golang:1.17
     environment:
         GO111MODULE: on
 
@@ -23,7 +23,7 @@ jobs:
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - tag: ./ci/git-tag.sh
-            - release: "curl -sL https://git.io/goreleaser | VERSION=v1.6.3 bash"
+            - release: "curl -sL https://git.io/goreleaser | bash"
         secrets:
             # Pushing tags to Git
             - GIT_KEY
