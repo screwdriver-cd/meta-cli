@@ -107,6 +107,12 @@ $ meta lua -E 'images = meta.get("images") or {}; print(#images); table.insert(i
 1
 ```
 
+## Brew installation (experimental)
+```bash
+brew tap screwdriver-cd/meta-cli git@github.com:screwdriver-cd/meta-cli.git
+brew install screwdriver-cd/meta-cli/meta
+```
+
 ## Testing
 
 ```bash
