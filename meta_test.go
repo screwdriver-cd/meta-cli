@@ -270,11 +270,11 @@ func (s *MetaSuite) TestGetMetaJobParams() {
 	}{
 		{
 			key:      `parameters.color`,
-			expected: `red`,
+			expected: `{"value":"red"}`,
 		},
 		{
 			key:      `parameters.car`,
-			expected: `audi`,
+			expected: `{"value":"audi"}`,
 		},
 		{
 			key:      `parameters.notexist`,
@@ -291,7 +291,70 @@ func (s *MetaSuite) TestGetMetaJobParams() {
 				return
 			}
 			s.Require().NoError(err)
-			s.Assert().Equal(tt.expected, got)
+			s.Assert().JSONEq(tt.expected, got)
+		})
+	}
+}
+
+func (s *MetaSuite) TestGetMetaParametersWithJobOverrides() {
+	tests := []struct {
+		name         string
+		filename     string
+		expectedJSON string
+	}{
+		{
+			name: "Given jobParamsComponentFile, " +
+				"When fetching parameters, " +
+				"Then overrides are performed, " +
+				"And the jobname does not exist",
+			filename: jobParamsComponentFile,
+			expectedJSON: `
+{
+	"car": {
+		"value": "audi"
+	},
+	"color": {
+		"value": "red"
+	},
+	"publish": {
+ 		"car": {
+			"value": "mercedes"
+		}
+	}
+}
+`,
+		},
+		{
+			name: "Given jobParamsComponentPRBuildFile, " +
+				"When fetching parameters, " +
+				"Then overrides are performed, " +
+				"And the jobname does not exist",
+			filename: jobParamsComponentPRBuildFile,
+			expectedJSON: `
+{
+	"car":{
+		"value": "audi"
+	},
+	"color": {
+		"value": "red"
+	},
+	"publish": {
+ 		"car": {
+			"value": "mercedes"
+		}
+	}
+}
+`,
+		},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.SetupTest()
+			s.MetaSpec.MetaFile = tt.filename
+			s.Require().NoError(s.CopyMockFile(tt.filename))
+			got, err := s.MetaSpec.Get("parameters")
+			s.Require().NoError(err)
+			s.Assert().JSONEq(tt.expectedJSON, got)
 		})
 	}
 }
@@ -308,11 +371,11 @@ func (s *MetaSuite) TestGetMetaJobParamsForPRBuild() {
 	}{
 		{
 			key:      `parameters.color`,
-			expected: `red`,
+			expected: `{"value": "red"}`,
 		},
 		{
 			key:      `parameters.car`,
-			expected: `audi`,
+			expected: `{"value":"audi"}`,
 		},
 		{
 			key:      `parameters.notexist`,
@@ -329,7 +392,7 @@ func (s *MetaSuite) TestGetMetaJobParamsForPRBuild() {
 				return
 			}
 			s.Require().NoError(err)
-			s.Assert().Equal(tt.expected, got)
+			s.Assert().JSONEq(tt.expected, got)
 		})
 	}
 }
@@ -346,11 +409,11 @@ func (s *MetaSuite) TestGetMetaJobParamsFallbackToPipelineParameters() {
 	}{
 		{
 			key:      `parameters.color`,
-			expected: `white`,
+			expected: `{"value": "white"}`,
 		},
 		{
 			key:      `parameters.car`,
-			expected: `mercedes`,
+			expected: `{"value": "mercedes"}`,
 		},
 		{
 			key:      `parameters.notexist`,
@@ -367,7 +430,7 @@ func (s *MetaSuite) TestGetMetaJobParamsFallbackToPipelineParameters() {
 				return
 			}
 			s.Require().NoError(err)
-			s.Assert().Equal(tt.expected, got)
+			s.Assert().JSONEq(tt.expected, got)
 		})
 	}
 }

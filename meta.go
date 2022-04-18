@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/imdario/mergo"
 	"io"
 	"io/ioutil"
 	"os"
@@ -234,6 +235,25 @@ func (m *MetaSpec) Get(key string) (string, error) {
 		if result != nil {
 			return formatMetaValueForGet(result, m.JSONValue)
 		}
+	}
+
+	if key == "parameters" {
+		jobName, _ := m.Get("build.jobName")
+		jobRE := parentJobNameRegExp.FindStringSubmatch(jobName)
+		jobName = jobRE[2]
+		_, result := fetchMetaValue("parameters", metaInterface)
+		_, jobResult := fetchMetaValue("parameters."+jobName, metaInterface)
+		if jobResult != nil {
+			dst, ok := result.(map[string]interface{})
+			if !ok {
+				return "", fmt.Errorf("unexpected type for dst %T", result)
+			}
+			delete(dst, jobName)
+			if err = mergo.Merge(&dst, jobResult, mergo.WithOverride); err != nil {
+				return "", err
+			}
+		}
+		return formatMetaValueForGet(result, m.JSONValue)
 	}
 
 	_, result := fetchMetaValue(key, metaInterface)

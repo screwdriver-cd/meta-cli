@@ -27,6 +27,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/lib/pq v1.7.0 // indirect
