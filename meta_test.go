@@ -306,7 +306,7 @@ func (s *MetaSuite) TestGetMetaParametersWithJobOverrides() {
 			name: "Given jobParamsComponentFile, " +
 				"When fetching parameters, " +
 				"Then overrides are performed, " +
-				"And the jobname does not exist",
+				"And the job keys do not exist",
 			filename: jobParamsComponentFile,
 			expectedJSON: `
 {
@@ -315,11 +315,6 @@ func (s *MetaSuite) TestGetMetaParametersWithJobOverrides() {
 	},
 	"color": {
 		"value": "red"
-	},
-	"publish": {
- 		"car": {
-			"value": "mercedes"
-		}
 	}
 }
 `,
@@ -328,7 +323,7 @@ func (s *MetaSuite) TestGetMetaParametersWithJobOverrides() {
 			name: "Given jobParamsComponentPRBuildFile, " +
 				"When fetching parameters, " +
 				"Then overrides are performed, " +
-				"And the jobname does not exist",
+				"And the job keys do not exist",
 			filename: jobParamsComponentPRBuildFile,
 			expectedJSON: `
 {
@@ -337,11 +332,23 @@ func (s *MetaSuite) TestGetMetaParametersWithJobOverrides() {
 	},
 	"color": {
 		"value": "red"
+	}
+}
+`,
+		},
+		{
+			name: "Given jobParamsPublishFile, " +
+				"When fetching parameters, " +
+				"Then overrides for publish job are performed, " +
+				"And the job keys do not exist",
+			filename: jobParamsPublishFile,
+			expectedJSON: `
+{
+	"car":{
+		"value": "mercedes"
 	},
-	"publish": {
- 		"car": {
-			"value": "mercedes"
-		}
+	"color": {
+		"value": "white"
 	}
 }
 `,

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/imdario/mergo"
 	"io"
 	"io/ioutil"
 	"os"
@@ -40,7 +39,7 @@ var (
 var metaKeyValidator = regexp.MustCompile(`^(\w+([-:]*\w+)*)+(((\[\]|\[(0|[1-9]\d*)\]))?(\.(\w+([-:]*\w+)*)+)*)*$`)
 var rightBracketRegExp = regexp.MustCompile(`\[(.*?)\]`)
 var isNumberRegExp = regexp.MustCompile(`^[+-]?(?:[0-9]*[.])?[0-9]+$`)
-var metaKeyIsParameterRegExp = regexp.MustCompile(`^parameters\.(.+)`)
+var metaKeyIsParameterRegExp = regexp.MustCompile(`^parameters(:?\.(.+))?`)
 var parentJobNameRegExp = regexp.MustCompile(`^(PR-\d+:)?(.+)`)
 
 // MetaSpec encapsulates the parameters usually from CLI so they are more readable and shareable than positional params.
@@ -204,6 +203,53 @@ func (m *MetaSpec) CachedGet(key string) (string, error) {
 	return s, nil
 }
 
+//copyParamValuesIntoMap Copies only param values from src into dst (values with "value" field of type string)
+func copyParamValuesIntoMap(dst map[string]interface{}, src interface{}) {
+	// nil is empty map, just bail with log
+	if src == nil {
+		logrus.Debugf("src is nil; no work to do")
+		return
+	}
+	// convert the interface to a map type to walk its keys/values
+	if srcMap := convertInterfaceToMap(src); srcMap != nil {
+		for k, v := range srcMap {
+			_, value := fetchMetaValue("value", v)
+			if _, ok := value.(string); ok {
+				dst[k] = v
+			} else {
+				logrus.Tracef("value for key %s is of type %T; skipping", k, value)
+			}
+		}
+	} else {
+		// If not map, warn and bail
+		logrus.Warnf("src is not a map type; skipping")
+	}
+}
+
+//cleanParameters copies keys with values (not job keys) are copied and overrides the current job's params, if any.
+func (m *MetaSpec) cleanParameters(metaInterface map[string]interface{}) (map[string]interface{}, error) {
+	// Ensure paramters exist; otherwise warn and return without error
+	_, parameters := fetchMetaValue("parameters", metaInterface)
+	if parameters == nil {
+		logrus.Warnf("No parameters")
+		return nil, nil
+	}
+	// Copy values that have a value of type string (filter out the job-specific values)
+	ret := make(map[string]interface{})
+	copyParamValuesIntoMap(ret, parameters)
+
+	// Override the values with job-specific ones for this jobName
+	jobName, _ := m.Get("build.jobName")
+	jobRE := parentJobNameRegExp.FindStringSubmatch(jobName)
+	jobName = jobRE[2]
+	if _, jobParameters := fetchMetaValue(jobName, parameters); jobParameters != nil {
+		copyParamValuesIntoMap(ret, jobParameters)
+	} else {
+		logrus.Tracef("No jobParameters for jobName: %s", jobName)
+	}
+	return ret, nil
+}
+
 // Get gets metadata for the given key
 func (m *MetaSpec) Get(key string) (string, error) {
 	if m.CacheLocal && m.IsExternal() {
@@ -224,38 +270,19 @@ func (m *MetaSpec) Get(key string) (string, error) {
 		return "", err
 	}
 
+	// Adjust the metaInterface and key to the cleaned parameters and subkey and fall through to normal return
 	if metaKeyIsParameterRegExp.MatchString(key) {
-		// lookup for parameter at job level
-		param_re := metaKeyIsParameterRegExp.FindStringSubmatch(key)
-		jobName, _ := m.Get("build.jobName")
-		job_re := parentJobNameRegExp.FindStringSubmatch(jobName)
-		_, result := fetchMetaValue(fmt.Sprintf("parameters.%s.%s", job_re[2], param_re[1]), metaInterface)
-
-		// if parameter is not defined at job level, lookup at pipeline level
-		if result != nil {
-			return formatMetaValueForGet(result, m.JSONValue)
+		// Fetch and clean the parameters from the metaInterface
+		metaInterface, err = m.cleanParameters(metaInterface)
+		if err != nil {
+			return "", err
 		}
+		// Adjust the key to be relative to parameters
+		paramRE := metaKeyIsParameterRegExp.FindStringSubmatch(key)
+		key = paramRE[1]
 	}
 
-	if key == "parameters" {
-		jobName, _ := m.Get("build.jobName")
-		jobRE := parentJobNameRegExp.FindStringSubmatch(jobName)
-		jobName = jobRE[2]
-		_, result := fetchMetaValue("parameters", metaInterface)
-		_, jobResult := fetchMetaValue("parameters."+jobName, metaInterface)
-		if jobResult != nil {
-			dst, ok := result.(map[string]interface{})
-			if !ok {
-				return "", fmt.Errorf("unexpected type for dst %T", result)
-			}
-			delete(dst, jobName)
-			if err = mergo.Merge(&dst, jobResult, mergo.WithOverride); err != nil {
-				return "", err
-			}
-		}
-		return formatMetaValueForGet(result, m.JSONValue)
-	}
-
+	// fetch the key from the resulting interface and return the string result corresponding to the json flag
 	_, result := fetchMetaValue(key, metaInterface)
 	return formatMetaValueForGet(result, m.JSONValue)
 }
@@ -325,14 +352,13 @@ func metaIndexFromKey(key string) int {
 // convertInterfaceToMap converts interface{} to map[string]interface{} via Value
 func convertInterfaceToMap(metaInterface interface{}) map[string]interface{} {
 	metaValue := reflect.ValueOf(metaInterface)
-	metaMap := make(map[string]interface{})
-	if metaValue.Kind() == reflect.Map {
-		for _, keyValue := range metaValue.MapKeys() {
-			keyString, _ := keyValue.Interface().(string)
-			metaMap[keyString] = metaValue.MapIndex(keyValue).Interface()
-		}
-	} else {
+	if metaValue.Kind() != reflect.Map {
 		return nil
+	}
+	metaMap := make(map[string]interface{})
+	for _, keyValue := range metaValue.MapKeys() {
+		keyString, _ := keyValue.Interface().(string)
+		metaMap[keyString] = metaValue.MapIndex(keyValue).Interface()
 	}
 	return metaMap
 }
