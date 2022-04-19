@@ -1,1 +1,1 @@
-{"build":{"jobName":"publish"},"parameters":{"color":"white","component":{"color":"red","car":"audi"},"publish":{"car":"mercedes"}}}
+{"build":{"jobName":"publish"},"parameters":{"color":{"value":"white"},"component":{"color":{"value":"red"},"car":{"value":"audi"}},"publish":{"car":{"value":"mercedes"}}}}
