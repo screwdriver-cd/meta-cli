@@ -241,12 +241,13 @@ func (m *MetaSpec) cleanParameters(metaInterface map[string]interface{}) (map[st
 	// Override the values with job-specific ones for this jobName
 	_, buildJobName := fetchMetaValue("build.jobName", metaInterface)
 	if jobName, ok := buildJobName.(string); ok {
-		jobRE := parentJobNameRegExp.FindStringSubmatch(jobName)
-		jobName = jobRE[2]
-		if _, jobParameters := fetchMetaValue(jobName, parameters); jobParameters != nil {
-			copyParamValuesIntoMap(ret, jobParameters)
-		} else {
-			logrus.Tracef("No jobParameters for jobName: %s", jobName)
+		if jobRE := parentJobNameRegExp.FindStringSubmatch(jobName); jobRE != nil {
+			jobName = jobRE[2]
+			if _, jobParameters := fetchMetaValue(jobName, parameters); jobParameters != nil {
+				copyParamValuesIntoMap(ret, jobParameters)
+			} else {
+				logrus.Tracef("No jobParameters for jobName: %s", jobName)
+			}
 		}
 	}
 	return ret, nil
