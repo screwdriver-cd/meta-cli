@@ -227,7 +227,7 @@ func copyParamValuesIntoMap(dst map[string]interface{}, src interface{}) {
 }
 
 //cleanParameters copies keys with values (not job keys) are copied and overrides the current job's params, if any.
-func (m *MetaSpec) cleanParameters(metaInterface map[string]interface{}) (map[string]interface{}, error) {
+func cleanParameters(metaInterface map[string]interface{}) (map[string]interface{}, error) {
 	// Ensure paramters exist; otherwise warn and return without error
 	_, parameters := fetchMetaValue("parameters", metaInterface)
 	if parameters == nil {
@@ -276,7 +276,7 @@ func (m *MetaSpec) Get(key string) (string, error) {
 	// Adjust the metaInterface and key to the cleaned parameters and subkey and fall through to normal return
 	if metaKeyIsParameterRegExp.MatchString(key) {
 		// Fetch and clean the parameters from the metaInterface
-		metaInterface, err = m.cleanParameters(metaInterface)
+		metaInterface, err = cleanParameters(metaInterface)
 		if err != nil {
 			return "", err
 		}
