@@ -8,9 +8,9 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/termie/go-shutil v0.0.0-20140729215957-bcacb06fecae
 	github.com/tidwall/gjson v1.9.3
-	github.com/vadv/gopher-lua-libs v0.1.3
+	github.com/vadv/gopher-lua-libs v0.1.6
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
-	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f // indirect
+	golang.org/x/sys v0.0.0-20220328115105-d36c6a25d886 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
