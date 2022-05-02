@@ -804,7 +804,7 @@ func main() {
 	// inserts the "lua" subcommand in that case.
 	args := os.Args
 	if len(args) >= 2 && strings.HasSuffix(args[1], ".lua") {
-		args = append([]string{args[0], "lua"}, args[1:]...)
+		args = append([]string{args[0], "lua", "--"}, args[1:]...)
 	}
 
 	if err := app.Run(args); err != nil {
