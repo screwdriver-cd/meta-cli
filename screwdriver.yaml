@@ -22,7 +22,7 @@ jobs:
                 (
                   set -e
                   [ "$(./test-shebang.lua)" = $'hello world\n{}' ]
-                  [ "$(./test-shebang.lua --flagarg argvalue)" == $'hello world\n{ "--flagarg", "argvalue" }' ]
+                  [ "$(./test-shebang.lua --flagarg argvalue)" = $'hello world\n{ "--flagarg", "argvalue" }' ]
                 )
     publish:
         requires: [main]
