@@ -19,8 +19,16 @@ jobs:
             - build: go build -a -o $SD_ARTIFACTS_DIR/meta
             - test-shebang: |
                 ln -s $SD_ARTIFACTS_DIR/meta ./meta-cli
-                [ "$(./test-shebang.lua)" = $'hello world\n{}' ] || exit 1
-                [ "$(./test-shebang.lua --flagarg argvalue)" = $'hello world\n{ "--flagarg", "argvalue" }' ] || exit 1
+                noargs="$(./test-shebang.lua)"
+                if [ "$noargs" != $'hello world\n{}' ]; then
+                  echo >&2 $"./test-shebang.lua yielded\n${noargs}"
+                  exit 1
+                fi
+                args="$(./test-shebang.lua --flagarg argvalue)"
+                if [ "$args" != $'hello world\n{ "--flagarg", "argvalue" }' ]; then
+                  echo >&2 $"./test-shebang.lua --flagarg argvalue yielded\n${args}"
+                  exit 1
+                fi
     publish:
         requires: [main]
         steps:
