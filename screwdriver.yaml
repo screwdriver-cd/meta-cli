@@ -21,8 +21,8 @@ jobs:
                 ln -s $SD_ARTIFACTS_DIR/meta ./meta-cli
                 (
                   set -e
-                  [[ $(./test-shebang.lua) == $'hello world\n{}' ]]
-                  [[ $(./test-shebang.lua --flagarg argvalue) == $'hello world\n{ "--flagarg", "argvalue" }' ]]
+                  [ "$(./test-shebang.lua)" = $'hello world\n{}' ]
+                  [ "$(./test-shebang.lua --flagarg argvalue)" == $'hello world\n{ "--flagarg", "argvalue" }' ]
                 )
     publish:
         requires: [main]
