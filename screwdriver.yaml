@@ -19,8 +19,12 @@ jobs:
             - build: go build -a -o $SD_ARTIFACTS_DIR/meta
             - test-shebang: |
                 ln -s $SD_ARTIFACTS_DIR/meta ./meta-cli
-                ./test-shebang.lua
-
+                
+                ./test-shebang.lua > "${SD_ARTIFACTS_DIR}/noargs.txt"
+                diff "${SD_ARTIFACTS_DIR}/noargs.txt" noargs-expected.txt || exit 1
+                
+                ./test-shebang.lua --flagarg argvalue > "${SD_ARTIFACTS_DIR}/args.txt"
+                diff "${SD_ARTIFACTS_DIR}/args.txt" args-expected.txt || exit 1
     publish:
         requires: [main]
         steps:

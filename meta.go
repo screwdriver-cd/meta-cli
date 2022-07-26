@@ -801,10 +801,10 @@ func main() {
 	}
 
 	// To allow shebang scripting to use lua, #!/usr/bin/env meta looks to see if the first arg ends with .lua and
-	// inserts the "lua" subcommand in that case.
+	// inserts the "lua" subcommand in that case, as well as -- to allow any --switches to go to lua; not urfave/cli.
 	args := os.Args
 	if len(args) >= 2 && strings.HasSuffix(args[1], ".lua") {
-		args = append([]string{args[0], "lua"}, args[1:]...)
+		args = append([]string{args[0], "lua", "--"}, args[1:]...)
 	}
 
 	if err := app.Run(args); err != nil {
