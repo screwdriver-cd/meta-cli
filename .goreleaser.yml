@@ -1,3 +1,4 @@
+brews: []
 builds:
   - binary: meta
     goos:
