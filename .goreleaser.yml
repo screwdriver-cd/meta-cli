@@ -5,7 +5,6 @@ brews:
     folder: Formula
     homepage: https://github.com/screwdriver-cd/meta-cli
     description: CLI for reading/writing Screwdriver project metadata
-    download_strategy: CurlDownloadStrategy
     install: |
       bin.install "meta-cli" => "meta"
     test: |
