@@ -7,6 +7,13 @@ brews:
     description: CLI for reading/writing Screwdriver project metadata
     install: |
       bin.install File.basename(@stable.url) => "meta"
+      ohai 'Notice', <<~EOL
+        In order to use, you may wish to add the following to your ~/.bash_profile and execute now
+
+          export SD_META_DIR="$HOME/meta"
+          mkdir -p "$SD_META_DIR"
+
+      EOL
     test: |
       system "#{bin}/meta-cli", "--version"
 builds:
