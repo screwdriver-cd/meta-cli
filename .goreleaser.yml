@@ -1,4 +1,15 @@
-brews: []
+brews:
+  - tap:
+      owner: screwdriver-cd
+      name: meta-cli
+    folder: Formula
+    homepage: https://github.com/screwdriver-cd/meta-cli
+    description: CLI for reading/writing Screwdriver project metadata
+    download_strategy: CurlDownloadStrategy
+    install: |
+      bin.install "meta-cli" => "meta"
+    test: |
+      system "#{bin}/meta-cli", "--version"
 builds:
   - binary: meta
     goos:
