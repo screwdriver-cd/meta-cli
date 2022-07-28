@@ -6,7 +6,7 @@ brews:
     homepage: https://github.com/screwdriver-cd/meta-cli
     description: CLI for reading/writing Screwdriver project metadata
     install: |
-      bin.install "meta-cli" => "meta"
+      bin.install File.basename(@stable.url) => "meta"
     test: |
       system "#{bin}/meta-cli", "--version"
 builds:
