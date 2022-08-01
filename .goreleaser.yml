@@ -5,6 +5,7 @@ brews:
     folder: Formula
     homepage: https://github.com/screwdriver-cd/meta-cli
     description: CLI for reading/writing Screwdriver project metadata
+    commit_msg_template: "[skip ci] Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     install: |
       bin.install File.basename(@stable.url) => "meta"
       ohai 'Notice', <<~EOL
