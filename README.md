@@ -124,3 +124,15 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [build-url]: https://cd.screwdriver.cd/pipelines/67
 [goreport-image]: https://goreportcard.com/badge/github.com/Screwdriver-cd/meta-cli
 [goreport-url]: https://goreportcard.com/report/github.com/Screwdriver-cd/meta-cli
+
+## Installing locally using homebrew
+
+* prerequisite: install [homebrew](https://homebrew.sh/)
+* Tap meta-cli:
+    ```bash
+    brew tap screwdriver-cd/meta-cli https://github.com/screwdriver-cd/meta-cli.git
+    ```
+* Install meta-cli
+    ```bash
+    brew install meta-cli
+    ```
