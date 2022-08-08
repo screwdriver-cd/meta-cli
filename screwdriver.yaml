@@ -15,15 +15,9 @@ jobs:
             - vet: go vet ./...
             - gofmt: (! gofmt -d . | grep '^')
             - test-setup: go install gotest.tools/gotestsum@latest
+            - build: go build -a -o "${SD_ARTIFACTS_DIR}/meta"
+            - link-meta-to-source: ln -s "${SD_ARTIFACTS_DIR}/meta" "${SD_SOURCE_DIR}/meta-cli"
             - test: gotestsum --format testname --jsonfile ${SD_ARTIFACTS_DIR}/report.json -- -coverprofile=${SD_ARTIFACTS_DIR}/coverage.out ./...
-            - build: go build -a -o $SD_ARTIFACTS_DIR/meta
-            - install-bats-tools: |
-                  apt-get update
-                  apt-get install -y bats jq
-            - bats-test: |
-                ln -s $SD_ARTIFACTS_DIR/meta ./meta-cli
-                
-                bats -t bats-tests > "${SD_ARTIFACTS_DIR}/TEST-bats.tap"
     publish:
         requires: [main]
         steps:
