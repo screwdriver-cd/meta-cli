@@ -1,6 +1,6 @@
 -- test arg passing
 assert(arg)
-assert(arg[0] == "test-arg-passing.lua")
+assert(arg[0] == "testdata/test-arg-passing.lua")
 assert(#arg == 3)
 assert(arg[1] == "foo", tostring(arg[1]))
 assert(arg[2] == "bar", tostring(arg[2]))
