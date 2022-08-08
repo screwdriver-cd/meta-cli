@@ -17,10 +17,10 @@ jobs:
             - test-setup: go install gotest.tools/gotestsum@latest
             - test: gotestsum --format testname --jsonfile ${SD_ARTIFACTS_DIR}/report.json -- -coverprofile=${SD_ARTIFACTS_DIR}/coverage.out ./...
             - build: go build -a -o $SD_ARTIFACTS_DIR/meta
-            - install-test-tools: |
+            - install-bats-tools: |
                   apt-get update
                   apt-get install -y bats jq
-            - test-shebang: |
+            - bats-test: |
                 ln -s $SD_ARTIFACTS_DIR/meta ./meta-cli
                 
                 bats -t bats-tests > "${SD_ARTIFACTS_DIR}/TEST-bats.tap"
