@@ -204,6 +204,22 @@ func (s *LuaSuite) TestCLI() {
 			},
 		},
 		{
+			name:    "test-shebang-argparse.lua THE QUICK BROWN FOX",
+			cliName: "testdata/test-shebang-argparse.lua",
+			cliArgs: []string{"THE", "QUICK", "BROWN", "FOX"},
+			verify: func(s *LuaSuite, tc *testCase, lines []string) {
+				require := s.Require()
+				require.Len(lines, 1)
+				assert := s.Assert()
+				assert.JSONEq(lines[0], `
+{
+	"default": "default",
+	"rest": ["THE", "QUICK", "BROWN", "FOX"]
+}
+`)
+			},
+		},
+		{
 			name:      "test-shebang-argparse.lua -c BAD_CHOICE fails",
 			cliName:   "testdata/test-shebang-argparse.lua",
 			cliArgs:   []string{"-c", "BAD_CHOICE"},
