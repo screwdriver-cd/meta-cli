@@ -17,14 +17,13 @@ jobs:
             - test-setup: go install gotest.tools/gotestsum@latest
             - test: gotestsum --format testname --jsonfile ${SD_ARTIFACTS_DIR}/report.json -- -coverprofile=${SD_ARTIFACTS_DIR}/coverage.out ./...
             - build: go build -a -o $SD_ARTIFACTS_DIR/meta
+            - install-test-tools: |
+                  apt-get update
+                  apt-get install -y bats jq
             - test-shebang: |
                 ln -s $SD_ARTIFACTS_DIR/meta ./meta-cli
                 
-                ./test-shebang.lua > "${SD_ARTIFACTS_DIR}/noargs.txt"
-                diff "${SD_ARTIFACTS_DIR}/noargs.txt" noargs-expected.txt || exit 1
-                
-                ./test-shebang.lua --flagarg argvalue > "${SD_ARTIFACTS_DIR}/args.txt"
-                diff "${SD_ARTIFACTS_DIR}/args.txt" args-expected.txt || exit 1
+                bats -t bats-tests > "${SD_ARTIFACTS_DIR}/TEST-bats.tap"
     publish:
         requires: [main]
         steps:
