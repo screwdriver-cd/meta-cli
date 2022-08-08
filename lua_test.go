@@ -218,8 +218,10 @@ func (s *LuaSuite) TestCLI() {
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			require := s.Require()
 			s.SetupTest()
+			defer s.TearDownTest()
+
+			require := s.Require()
 			cmd := exec.Command(tt.cliName, tt.cliArgs...)
 			stdout := &strings.Builder{}
 			stderr := &strings.Builder{}
