@@ -15,16 +15,9 @@ jobs:
             - vet: go vet ./...
             - gofmt: (! gofmt -d . | grep '^')
             - test-setup: go install gotest.tools/gotestsum@latest
+            - build: go build -a -o "${SD_ARTIFACTS_DIR}/meta"
+            - link-meta-to-source: ln -s "${SD_ARTIFACTS_DIR}/meta" "${SD_SOURCE_DIR}/meta-cli"
             - test: gotestsum --format testname --jsonfile ${SD_ARTIFACTS_DIR}/report.json -- -coverprofile=${SD_ARTIFACTS_DIR}/coverage.out ./...
-            - build: go build -a -o $SD_ARTIFACTS_DIR/meta
-            - test-shebang: |
-                ln -s $SD_ARTIFACTS_DIR/meta ./meta-cli
-                
-                ./test-shebang.lua > "${SD_ARTIFACTS_DIR}/noargs.txt"
-                diff "${SD_ARTIFACTS_DIR}/noargs.txt" noargs-expected.txt || exit 1
-                
-                ./test-shebang.lua --flagarg argvalue > "${SD_ARTIFACTS_DIR}/args.txt"
-                diff "${SD_ARTIFACTS_DIR}/args.txt" args-expected.txt || exit 1
     publish:
         requires: [main]
         steps:
