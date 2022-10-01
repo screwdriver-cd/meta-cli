@@ -688,7 +688,8 @@ func main() {
 
 				if c.NArg() != 1 {
 					logrus.Error("meta get expects exactly one argument (key)")
-					return cli.ShowCommandHelp(c, "get")
+					cli.ShowCommandHelp(c, "get")
+					failureExit(nil)
 				}
 				key := c.Args().Get(0)
 				if valid := validateMetaKey(key); !valid {
@@ -726,7 +727,8 @@ func main() {
 
 				if c.NArg() != 2 {
 					logrus.Error("meta set expects exactly two arguments (key, value)")
-					return cli.ShowCommandHelp(c, "set")
+					cli.ShowCommandHelp(c, "set")
+					failureExit(nil)
 				}
 				key := c.Args().Get(0)
 				val := c.Args().Get(1)
@@ -755,7 +757,8 @@ func main() {
 
 				if c.NArg() != 0 {
 					logrus.Error("meta dump expects no arguments")
-					return cli.ShowCommandHelp(c, "dump")
+					cli.ShowCommandHelp(c, "dump")
+					failureExit(nil)
 				}
 
 				if _, err := fetch.ParseJobDescription(metaSpec.LastSuccessfulMetaRequest.DefaultSdPipelineID, metaSpec.MetaFile); metaSpec.IsExternal() && err != nil {
