@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/vadv/gopher-lua-libs/tests"
 	lua "github.com/yuin/gopher-lua"
 	"os"
 	"os/exec"
@@ -31,49 +34,24 @@ func (s *LuaSuite) TearDownTest() {
 	s.Require().NoError(os.RemoveAll(s.MetaSpec.MetaSpace))
 }
 
-func TestLuaSuite(t *testing.T) {
-	suite.Run(t, new(LuaSuite))
+func TestLua(t *testing.T) {
+	preload := tests.SeveralPreloadFuncs(
+		func(L *lua.LState) {
+			luaSpec := &LuaSpec{
+				MetaSpec: &MetaSpec{
+					JSONValue: true,
+					MetaSpace: testDir,
+					MetaFile:  testFile,
+				},
+			}
+			require.NoError(t, luaSpec.initState(L))
+		},
+	)
+	assert.NotZero(t, tests.RunLuaTestFile(t, preload, "testdata/test.lua"))
 }
 
-func (s *LuaSuite) TestLua() {
-	require := s.Require()
-
-	s.LuaSpec.EvaluateFunction = func(L *lua.LState) int {
-		// Clear the stack
-		L.Pop(L.GetTop())
-
-		// Load the test cases from file
-		require.NoError(L.DoFile("testdata/test.lua"))
-		require.Equal(1, L.GetTop())
-		test := L.CheckTable(1)
-		L.Pop(1)
-
-		// For each method on the returned test object, invoke it safely with PCall.
-		testCount := 0
-		test.ForEach(func(key lua.LValue, value lua.LValue) {
-			if value.Type() != lua.LTFunction {
-				return
-			}
-			testCount++
-			s.Run(lua.LVAsString(key), func() {
-				s.SetupTest()
-				defer s.TearDownTest()
-
-				require := s.Require()
-				L.Push(value)
-				L.Push(test)
-				require.NoError(L.PCall(1, 0, nil))
-			})
-		})
-
-		// Ensure we ran non-zero tests.
-		s.Assert().NotEqual(0, testCount, "test should not be empty")
-
-		return 0
-	}
-
-	// Run it
-	require.NoError(s.LuaSpec.Do())
+func TestLuaSuite(t *testing.T) {
+	suite.Run(t, new(LuaSuite))
 }
 
 func (s *LuaSuite) TestArg_Passing() {
