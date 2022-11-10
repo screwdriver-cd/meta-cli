@@ -34,19 +34,21 @@ func (s *LuaSuite) TearDownTest() {
 	s.Require().NoError(os.RemoveAll(s.MetaSpec.MetaSpace))
 }
 
+func preloadMetaForTest(t *testing.T) tests.PreloadFunc {
+	return func(L *lua.LState) {
+		luaSpec := &LuaSpec{
+			MetaSpec: &MetaSpec{
+				JSONValue: true,
+				MetaSpace: testDir,
+				MetaFile:  testFile,
+			},
+		}
+		require.NoError(t, luaSpec.initState(L))
+	}
+}
+
 func TestLua(t *testing.T) {
-	preload := tests.SeveralPreloadFuncs(
-		func(L *lua.LState) {
-			luaSpec := &LuaSpec{
-				MetaSpec: &MetaSpec{
-					JSONValue: true,
-					MetaSpace: testDir,
-					MetaFile:  testFile,
-				},
-			}
-			require.NoError(t, luaSpec.initState(L))
-		},
-	)
+	preload := preloadMetaForTest(t)
 	assert.NotZero(t, tests.RunLuaTestFile(t, preload, "testdata/test.lua"))
 }
 
