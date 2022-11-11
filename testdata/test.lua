@@ -1,21 +1,30 @@
 -- luacheck: globals meta
-local test = {}
+local suite = require 'suite'
+local LuaSuite = suite.Suite:new()
+
+function TestLuaSuite(t)
+    suite.Run(t, LuaSuite)
+end
+
+function LuaSuite:SetupTest()
+    meta.spec.MetaSpace = self:T():TempDir()
+end
 
 -- test starting key is empty
-function test:foo_starts_as_nil()
+function LuaSuite:Test_foo_starts_as_nil()
     local foo = meta.get("foo")
     assert(foo == nil, foo)
 end
 
 -- test setting foo to "bar" then getting "foo" returns bar
-function test:set_get_string()
+function LuaSuite:Test_set_get_string()
     meta.set("foo", "bar")
     foo = meta.get("foo")
     assert(foo == "bar", tostring(foo))
 end
 
 -- test setting a variable to number and then getting and doing arithmetic works
-function test:get_set_num()
+function LuaSuite:Test_get_set_num()
     meta.set("num", 123)
     local num = meta.get("num")
     assert(num + 2 == 125)
@@ -23,7 +32,7 @@ function test:get_set_num()
 end
 
 -- test "ternary" for unset
-function test:ternary_for_unset()
+function LuaSuite:Test_ternary_for_unset()
     local yada = meta.get("yada")
     assert(yada == nil, tostring(yada))
     local num = yada == nil and 0 or tonumber(yada)
@@ -31,14 +40,14 @@ function test:ternary_for_unset()
 end
 
 -- test "ternary" for set
-function test:ternary_for_set()
+function LuaSuite:Test_ternary_for_set()
     meta.set("num", 123)
     local num = meta.get("num") == nil and 0 or tonumber(meta.get("num"))
     assert(num == 123, tostring(num))
 end
 
 -- test inspiratinal use-case
-function test:increment_use_case()
+function LuaSuite:Test_increment_use_case()
     -- [[inc safely]]
     local function inc(key)
         local ret = (meta.get(key) or 0) + 1
@@ -55,7 +64,7 @@ function test:increment_use_case()
 end
 
 -- test dump
-function test:set_then_dump_yields_all()
+function LuaSuite:Test_set_then_dump_yields_all()
     assert(meta.set("yowza", "abc") == nil)
     local d, err = meta.dump()
     assert(err == nil)
@@ -64,7 +73,7 @@ end
 
 -- test other types
 -- number
-function test:number()
+function LuaSuite:Test_number()
     meta.set("abc", 123)
     assert(meta.get("abc") == 123, tostring(meta.get("abc")))
 
@@ -73,7 +82,7 @@ function test:number()
 end
 
 -- nested table
-function test:nested_table()
+function LuaSuite:Test_nested_table()
     local json = require('json')
     myvals = { foo = "bar", yada = { yada = "yada" } }
     meta.set("table", myvals)
@@ -84,7 +93,7 @@ function test:nested_table()
 end
 
 -- test cloning & setting variables
-function test:cloning_meta()
+function LuaSuite:Test_cloning_meta()
     local m2 = meta.clone()
     assert(m2 ~= nil)
     assert(m2.MetaFile == "meta")
@@ -96,7 +105,7 @@ function test:cloning_meta()
     assert(m2.MetaSpace == "/dev/null")
 end
 
-function test:cloning_LastSuccessfulMetaRequest()
+function LuaSuite:Test_cloning_LastSuccessfulMetaRequest()
     meta.spec.LastSuccessfulMetaRequest.SdToken = 123
     assert(meta.spec.LastSuccessfulMetaRequest.SdToken == "123",
             string.format("SdToken=%s", meta.spec.LastSuccessfulMetaRequest.SdToken))
@@ -111,7 +120,7 @@ function test:cloning_LastSuccessfulMetaRequest()
 end
 
 -- test that JSONValue cannot be set
-function test:JSONValue_cannot_be_set()
+function LuaSuite:Test_JSONValue_cannot_be_set()
     local ran, errorMsg = pcall(function()
         meta.spec.JSONValue = false
     end)
@@ -121,7 +130,7 @@ end
 
 -- test enforcement of undump matching dump
 -- undump of dump is allowed
-function test:undump_of_dump_allowed()
+function LuaSuite:Test_undump_of_dump_allowed()
     local ran, errorMessage = pcall(function()
         meta.undump(meta.dump())
     end)
@@ -130,7 +139,7 @@ function test:undump_of_dump_allowed()
 end
 
 -- undump of cloned dump is not allowed
-function test:undump_of_cloned_dump_is_not_allowed()
+function LuaSuite:Test_undump_of_cloned_dump_is_not_allowed()
     local ran, errorMessage = pcall(function()
         meta.undump(meta.clone():dump())
     end)
@@ -139,7 +148,7 @@ function test:undump_of_cloned_dump_is_not_allowed()
 end
 
 -- Ensure that the spec metatable doesn't leak into the dumped object
-function test:spec_metatable_doesnt_leak_into_dumped_object()
+function LuaSuite:Test_spec_metatable_doesnt_leak_into_dumped_object()
     local dump = meta.dump()
     assert(not dump.spec, string.format("dump.spec=%s", dump.spec))
     assert(getmetatable(dump).spec, string.format("getmetatable(dump).spec=%s", getmetatable(dump).spec))
@@ -147,7 +156,7 @@ function test:spec_metatable_doesnt_leak_into_dumped_object()
 end
 
 -- test undumping a plain table
-function test:undump_plain_table_not_allowed()
+function LuaSuite:Test_undump_plain_table_not_allowed()
     local ran, errorMessage = pcall(function()
         meta.undump({ foo = "bar" })
     end)
@@ -156,7 +165,7 @@ function test:undump_plain_table_not_allowed()
 end
 
 -- test workaround for undumping
-function test:undump_workaround()
+function LuaSuite:Test_undump_workaround()
     local ran, errorMessage = pcall(function()
         local d = { workaround = "achievement unlocked!" }
         setmetatable(d, { spec = meta.spec })
@@ -169,10 +178,8 @@ function test:undump_workaround()
 end
 
 -- test metaFilePath works
-function test:metaFilePath_returns_non_empty()
+function LuaSuite:Test_metaFilePath_returns_non_empty()
     assert(meta.metaFilePath())
     assert(meta.metaFilePath() == meta.spec:metaFilePath(),
             string.format("%s != %s", meta.metaFilePath(), meta.spec:metaFilePath()))
 end
-
-return test
