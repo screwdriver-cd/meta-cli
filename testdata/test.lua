@@ -3,7 +3,7 @@ local suite = require 'suite'
 local LuaSuite = suite.Suite:new()
 
 function TestLuaSuite(t)
-    suite.Run(t, LuaSuite)
+    assert(suite.Run(t, LuaSuite) > 0, "no tests were run in this suite")
 end
 
 function LuaSuite:SetupTest()
