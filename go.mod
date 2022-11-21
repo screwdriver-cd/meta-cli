@@ -1,6 +1,6 @@
 module github.com/screwdriver-cd/meta-cli
 
-go 1.17
+go 1.19
 
 require (
 	github.com/gofrs/flock v0.7.1
