@@ -203,7 +203,7 @@ func (m *MetaSpec) CachedGet(key string) (string, error) {
 	return s, nil
 }
 
-//copyParamValuesIntoMap Copies only param values from src into dst (values with "value" field of type string)
+// copyParamValuesIntoMap Copies only param values from src into dst (values with "value" field of type string)
 func copyParamValuesIntoMap(dst map[string]interface{}, src interface{}) {
 	// nil is empty map, just bail with log
 	if src == nil {
@@ -226,7 +226,7 @@ func copyParamValuesIntoMap(dst map[string]interface{}, src interface{}) {
 	}
 }
 
-//cleanParameters copies keys with values (not job keys) are copied and overrides the current job's params, if any.
+// cleanParameters copies keys with values (not job keys) are copied and overrides the current job's params, if any.
 func cleanParameters(metaInterface map[string]interface{}) (map[string]interface{}, error) {
 	// Ensure paramters exist; otherwise warn and return without error
 	_, parameters := fetchMetaValue("parameters", metaInterface)
