@@ -10,7 +10,7 @@ require (
 	github.com/tidwall/gjson v1.9.3
 	github.com/vadv/gopher-lua-libs v0.4.0
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
-	golang.org/x/sys v0.0.0-20220328115105-d36c6a25d886 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
