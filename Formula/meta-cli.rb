@@ -5,12 +5,12 @@
 class MetaCli < Formula
   desc "CLI for reading/writing Screwdriver project metadata"
   homepage "https://github.com/screwdriver-cd/meta-cli"
-  version "0.0.82"
+  version "0.0.83"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.82/meta-cli_darwin_amd64"
-      sha256 "5d106af558433341f7e2a8579b1585943dbef7c9a368696174d1b25ece2557bc"
+      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.83/meta-cli_darwin_amd64"
+      sha256 "cbba494d388a487dd798bf35e3556a5ff9ca18094bd1420d87460251da5d014d"
 
       def install
         bin.install File.basename(@stable.url) => "meta"
@@ -24,8 +24,8 @@ class MetaCli < Formula
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.82/meta-cli_darwin_arm64"
-      sha256 "a657c1bc367a53606fb00ca54c893f1b551988225adf9f1e507dcd3ec2867be6"
+      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.83/meta-cli_darwin_arm64"
+      sha256 "4c16dd127b2a717cc46b34f389086cada5ad53ba859db4388d9a3d3e7ae56c9d"
 
       def install
         bin.install File.basename(@stable.url) => "meta"
@@ -42,8 +42,8 @@ class MetaCli < Formula
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.82/meta-cli_linux_amd64"
-      sha256 "30b5b762afdf6a07ac919a01d83e2884f7ca2b826ac8bb2e0d7cd0c6fb5208e8"
+      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.83/meta-cli_linux_amd64"
+      sha256 "af841efff95cba2f5772b410c6e30f5877484031a3641d1e4a1fd4ba7c3a44b8"
 
       def install
         bin.install File.basename(@stable.url) => "meta"
@@ -57,8 +57,8 @@ class MetaCli < Formula
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.82/meta-cli_linux_arm64"
-      sha256 "f23bf7101c17399fb1fc281bf18cf24c19364f7f2b4a54abe75efa56b6669972"
+      url "https://github.com/screwdriver-cd/meta-cli/releases/download/v0.0.83/meta-cli_linux_arm64"
+      sha256 "ebd9fdb83e0846186b5baedb3954ab5ea130070f4567d3f186aef694ae2af6c2"
 
       def install
         bin.install File.basename(@stable.url) => "meta"
