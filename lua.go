@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+
 	libs "github.com/vadv/gopher-lua-libs"
 	"github.com/vadv/gopher-lua-libs/json"
-	"io/ioutil"
 
 	"github.com/screwdriver-cd/meta-cli/internal/fetch"
 	lua "github.com/yuin/gopher-lua"
@@ -341,6 +342,12 @@ func callMethodLGFunction(ud *lua.LUserData, methodName string, nret int) lua.LG
 func (l *LuaSpec) initState(L *lua.LState) error {
 	// Preload the libs libraries
 	libs.Preload(L)
+	// Ensure that json is initialized since we use its methods
+	// Without this, if cli did meta set -j foo {}, then lua's meta.set("foo", meta.get("foo")) would set to [].
+	if err := L.DoString(`require "json"`); err != nil {
+		return err
+	}
+	L.Pop(L.GetTop())
 
 	// Register the MetaSpec TypeMetatable
 	registerMetaSpecType(L)

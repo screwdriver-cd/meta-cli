@@ -2,15 +2,16 @@ package main
 
 import (
 	"bufio"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/vadv/gopher-lua-libs/tests"
 	lua "github.com/yuin/gopher-lua"
-	"os"
-	"os/exec"
-	"strings"
-	"testing"
 )
 
 type LuaSuite struct {
@@ -62,6 +63,18 @@ func (s *LuaSuite) TestArg_Passing() {
 
 func (s *LuaSuite) TestArg_Passing_Json() {
 	s.Assert().NoError(s.LuaSpec.Do("testdata/test-arg-passing-json.lua", `{"foo": "bar", "bar": [1, 2, 3.45]}`))
+}
+
+func (s *LuaSuite) TestSetEmptyObjectIsObject() {
+	s.MetaSpec.JSONValue = true
+	s.Require().NoError(s.MetaSpec.Set("foo", "{}"))
+	s.MetaSpec.JSONValue = false
+
+	s.LuaSpec.EvaluateString = `meta.set("foo", meta.get("foo"))`
+	s.Require().NoError(s.LuaSpec.Do())
+	foo, err := s.MetaSpec.Get("foo")
+	s.Require().NoError(err)
+	s.Equal("{}", foo)
 }
 
 func (s *LuaSuite) TestCLI() {
