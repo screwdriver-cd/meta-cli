@@ -1,8 +1,7 @@
 module github.com/screwdriver-cd/meta-cli
 
 go 1.22
-
-toolchain go1.23.3
+toolchain go1.24.1
 
 require (
 	github.com/gofrs/flock v0.12.1
@@ -12,7 +11,7 @@ require (
 	github.com/tidwall/gjson v1.18.0
 	github.com/vadv/gopher-lua-libs v0.5.0
 	github.com/yuin/gopher-lua v1.1.1
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
@@ -49,7 +48,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7 // indirect
-	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/xmlpath.v2 v2.0.0-20150820204837-860cbeca3ebc // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
