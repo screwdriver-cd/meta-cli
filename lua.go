@@ -46,12 +46,12 @@ func metaSpecGet(L *lua.LState) int {
 	}
 	got, err := meta.Get(L.CheckString(2))
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 	jsonResponse, err := json.ValueDecode(L, []byte(got))
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 	L.Push(jsonResponse)
@@ -68,12 +68,12 @@ func metaSpecSet(L *lua.LState) int {
 	value := L.CheckAny(3)
 	data, err := json.ValueEncode(value)
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 	err = meta.Set(L.CheckString(2), string(data))
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 	return 0
@@ -88,12 +88,12 @@ func metaSpecDump(L *lua.LState) int {
 	}
 	data, err := meta.GetData()
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 	decoded, err := json.ValueDecode(L, data)
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 
@@ -123,12 +123,12 @@ func metaSpecUndump(L *lua.LState) int {
 
 	data, err := json.ValueEncode(decoded)
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 	err = ioutil.WriteFile(meta.MetaFilePath(), data, 0666)
 	if err != nil {
-		L.RaiseError(err.Error())
+		L.RaiseError("%s", err.Error())
 		return 0
 	}
 	return 0

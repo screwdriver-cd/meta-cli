@@ -1,6 +1,6 @@
 
 shared:
-    image: golang:1.22
+    image: golang:1.25
     environment:
         GO111MODULE: on
 
