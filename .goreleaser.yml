@@ -1,11 +1,13 @@
+version: 2
+
 brews:
-  - tap:
+  - name: meta
+    repository:
       owner: screwdriver-cd
       name: meta-cli
-    folder: Formula
+    directory: Formula
     homepage: https://github.com/screwdriver-cd/meta-cli
     description: CLI for reading/writing Screwdriver project metadata
-    commit_msg_template: "[skip ci] Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     install: |
       bin.install File.basename(@stable.url) => "meta"
       ohai 'Notice', <<~EOL
@@ -18,7 +20,8 @@ brews:
     test: |
       system "#{bin}/meta-cli", "--version"
 builds:
-  - binary: meta
+  - id: meta
+    binary: meta
     goos:
       - linux
       - darwin
