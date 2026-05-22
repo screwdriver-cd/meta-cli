@@ -2,8 +2,6 @@ module github.com/screwdriver-cd/meta-cli
 
 go 1.25
 
-toolchain go1.23.3
-
 require (
 	github.com/gofrs/flock v0.12.1
 	github.com/sirupsen/logrus v1.9.3
