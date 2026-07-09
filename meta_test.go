@@ -764,6 +764,9 @@ func (s *MetaSuite) TestValidateMetaKeyWithAccept() {
 		{`f-o-o[1].bar--baz[2]`},
 		{`1.2.3`},
 		{`foo.b-a-r:baz:1-2-3[]`},
+		{`stage@test`},
+		{`stage@explicit-setup-and-teardown:setup`},
+		{`parameters.stage@test:teardown.test.value`},
 	}
 
 	for _, tt := range tests {
@@ -787,8 +790,10 @@ func (s *MetaSuite) TestValidateMetaKeyWithReject() {
 		{`foo.[]`},
 		{`-foo`},
 		{`foo-[]`},
+		{`foo@[]`},
 		{`foo.-bar`},
 		{`foo.bar-[]`},
+		{`@foo`},
 	}
 
 	for _, tt := range tests {
