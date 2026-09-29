@@ -1,7 +1,7 @@
 version: 2
 
 brews:
-  - name: meta
+  - name: meta-cli
     repository:
       owner: screwdriver-cd
       name: meta-cli
